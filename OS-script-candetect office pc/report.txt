@@ -1,0 +1,139 @@
+WINDOWS ENDPOINT SECURITY SCAN REPORT
+Timestamp: 2026-03-20 01:23:22 India Standard Time
+
+==============================================================================
+OVERALL SECURITY STATUS
+==============================================================================
+⚠️ Overall Status: NEEDS IMPROVEMENT
+This device is mostly OK, but some settings should be fixed soon to reduce risk.
+Risk Score: 9  |  Risk Level: MEDIUM
+Main reasons:
+  - Risky port listening: 445
+  - Potentially risky service running: LanmanServer
+  - Potentially risky service running: LanmanWorkstation
+  - Unusually low patch count
+Note: Some results are based on automated system checks and may require manual verification.
+
+==============================================================================
+1) SYSTEM INFORMATION
+==============================================================================
+Hostname   : DESKTOP-QK99KTV
+IP Address : 192.168.31.19
+OS Name    : Windows
+OS Release : 11
+OS Version : 10.0.26200
+Platform   : Windows-11-10.0.26200-SP0
+
+==============================================================================
+2) ANTIVIRUS (WMI / SecurityCenter2)
+==============================================================================
+Detection Method: PowerShell CIM (SecurityCenter2)
+Status          : ENABLED
+Real-Time Prot. : ENABLED
+Detected AV Products:
+  - Windows Defender
+Note: AV enabled/real-time status is best-effort; third-party AV reporting varies.
+
+==============================================================================
+3) PATCH / UPDATE CHECK (HOTFIXES)
+==============================================================================
+Detection Method: PowerShell Get-HotFix
+Total Patches   : 4
+Last Patch Date : 2026-03-11
+Patch Recency   : 9 days ago
+⚠️ Patch Warnings : Unusually low number of HotFix entries; the system may be missing updates.
+Installed Updates (summary table):
+  HotFixID  InstalledOn         Description
+  --------  -----------         -----------
+  KB5066128 03-03-2026 00:00:00 Update
+  KB5054156 03-03-2026 00:00:00 Update
+  KB5079473 11-03-2026 00:00:00 Security Update
+  KB5083532 10-03-2026 00:00:00 Security Update
+
+==============================================================================
+4) OS SECURITY VALIDATION
+==============================================================================
+Baseline        : Windows 11 baseline build >= 22621
+Detected Build  : 26200
+Baseline Status : PASS
+
+==============================================================================
+5) RISK SCORING + VULNERABILITY ASSESSMENT
+==============================================================================
+Risk Score (0+) : 9
+Risk Level      : MEDIUM
+Warnings / Findings:
+  ⚠️ Unusually low patch count.
+
+==============================================================================
+6) FIREWALL STATUS (NETSH)
+==============================================================================
+  Domain  : ON ✅
+  Private : ON ✅
+  Public  : ON ✅
+
+==============================================================================
+7) OPEN PORTS / EXPOSURE (LISTENING)
+==============================================================================
+Detection Method: psutil.net_connections()
+Total Listening Ports: 12
+Risky Listening Ports:
+  ❌ Port 445: SMB exposed can increase risk of lateral movement and wormable exploits.
+
+==============================================================================
+8) RUNNING SERVICES (HIGHLIGHTS)
+==============================================================================
+Detection Method: psutil.win_service_iter()
+Highlighted Services:
+  ❌ LanmanServer: SMB Server service. If running, ensure SMB is needed and hardened.
+  ⚠️ LanmanWorkstation: SMB client service. Typically normal; note for SMB exposure context.
+
+==============================================================================
+9) POTENTIAL VULNERABILITIES DETECTED
+==============================================================================
+  ❌ [High Risk (Needs immediate action)] (+3) Risky port listening: 445
+      - SMB exposed can increase risk of lateral movement and wormable exploits.
+      What this means:
+        - Port 445 is used for Windows file sharing (SMB). If it’s open, attackers can sometimes use it to spread malware across the network.
+      Why it matters:
+        - Open ports are like open doors on the network. Attackers scan for them to find targets.
+      What you should do:
+        - If file sharing is not needed, disable SMB/file sharing. If needed, restrict it to trusted networks, block it on Public networks, and keep Windows fully updated.
+
+  ❌ [High Risk (Needs immediate action)] (+2) Potentially risky service running: LanmanServer
+      - SMB Server service. If running, ensure SMB is needed and hardened.
+      What this means:
+        - The SMB file-sharing server is running on this device.
+      Why it matters:
+        - Unneeded services increase attack surface. If attackers find a weakness, a running service gives them something to target.
+      What you should do:
+        - If you don’t need file sharing, disable it. If needed, restrict sharing, disable SMBv1, and ensure firewall rules limit exposure.
+
+  ⚠️ [Medium Risk (Should be fixed soon)] (+1) Potentially risky service running: LanmanWorkstation
+      - SMB client service. Typically normal; note for SMB exposure context.
+      What this means:
+        - The SMB client component is running (normal for many systems).
+      Why it matters:
+        - Unneeded services increase attack surface. If attackers find a weakness, a running service gives them something to target.
+      What you should do:
+        - No action needed unless you are hardening SMB across the environment.
+
+  ⚠️ [Medium Risk (Should be fixed soon)] (+1) Unusually low patch count
+      - Low HotFix count may indicate missing cumulative updates (or limited visibility).
+      What this means:
+        - This device has fewer recorded updates than expected.
+      Why it matters:
+        - A low patch count can mean the system is missing updates, or that update inventory is incomplete.
+      What you should do:
+        - Run Windows Update and verify patching. If inventory is managed by IT, confirm reporting is working.
+
+
+==============================================================================
+10) RECOMMENDATIONS (GENERAL)
+==============================================================================
+  - Ensure Windows Update is enabled and fully patched.
+  - Ensure reputable antivirus is installed and up to date.
+  - Review local admin accounts and strong password policy.
+  - Enable firewall and disk encryption where possible.
+
+Friendly note: This report is generated from local system checks. Some items (especially third-party antivirus status and patch visibility) may require manual verification.

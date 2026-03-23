@@ -1,0 +1,916 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Endpoint Security Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #0b1220;
+      --panel: rgba(14, 24, 39, 0.84);
+      --panel-strong: rgba(13, 21, 34, 0.96);
+      --line: rgba(140, 167, 198, 0.16);
+      --text: #ebf2ff;
+      --muted: #9fb0c8;
+      --high: #ff5c5c;
+      --medium: #ffc94d;
+      --low: #43d17c;
+      --accent: #4dd0e1;
+      --accent-2: #7af2b8;
+      --status-online: #43d17c;
+      --status-offline: #ff7b7b;
+      --status-warn: #ffc94d;
+      --type-windows: #64b5f6;
+      --type-mobile: #ffb74d;
+      --type-unknown: #9ea7b8;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      font-family: "IBM Plex Sans", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(77, 208, 225, 0.18), transparent 28%),
+        radial-gradient(circle at top right, rgba(255, 92, 92, 0.14), transparent 24%),
+        linear-gradient(180deg, #09101c 0%, #0d1524 38%, #0b1220 100%);
+    }
+
+    h1, h2, h3, h4, .brand {
+      font-family: "Space Grotesk", sans-serif;
+      letter-spacing: -0.03em;
+    }
+
+    .shell {
+      max-width: 1480px;
+      margin: 0 auto;
+      padding: 28px 20px 44px;
+    }
+
+    .hero {
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background:
+        linear-gradient(135deg, rgba(15, 26, 41, 0.96), rgba(13, 22, 36, 0.84)),
+        linear-gradient(120deg, rgba(77, 208, 225, 0.08), rgba(255, 201, 77, 0.05));
+      border-radius: 24px;
+      padding: 24px;
+      box-shadow: 0 18px 60px rgba(0, 0, 0, 0.28);
+      margin-bottom: 22px;
+    }
+
+    .hero-subtitle {
+      color: var(--muted);
+      max-width: 760px;
+    }
+
+    .glass-card {
+      background: var(--panel);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      box-shadow: 0 14px 40px rgba(0, 0, 0, 0.18);
+    }
+
+    .section-card {
+      padding: 20px;
+      height: 100%;
+    }
+
+    .summary-card {
+      padding: 18px 20px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .summary-card::after {
+      content: "";
+      position: absolute;
+      inset: auto -18px -18px auto;
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.14), transparent);
+    }
+
+    .summary-label {
+      color: var(--muted);
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .summary-value {
+      font-size: 1.9rem;
+      font-weight: 700;
+      line-height: 1.15;
+    }
+
+    .risk-pill, .status-pill, .type-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .pill-high { color: #ffd5d5; background: rgba(255, 92, 92, 0.16); border-color: rgba(255, 92, 92, 0.22); }
+    .pill-medium { color: #ffeab2; background: rgba(255, 201, 77, 0.16); border-color: rgba(255, 201, 77, 0.22); }
+    .pill-low { color: #d9ffe9; background: rgba(67, 209, 124, 0.16); border-color: rgba(67, 209, 124, 0.22); }
+    .pill-unknown { color: #d7e5ff; background: rgba(132, 151, 184, 0.16); border-color: rgba(132, 151, 184, 0.22); }
+    .status-online { color: #d9ffe9; background: rgba(67, 209, 124, 0.16); border-color: rgba(67, 209, 124, 0.22); }
+    .status-offline { color: #ffd5d5; background: rgba(255, 92, 92, 0.16); border-color: rgba(255, 92, 92, 0.22); }
+    .status-warning { color: #ffeab2; background: rgba(255, 201, 77, 0.16); border-color: rgba(255, 201, 77, 0.22); }
+    .type-windows { color: #d8ecff; background: rgba(100, 181, 246, 0.15); border-color: rgba(100, 181, 246, 0.24); }
+    .type-mobile { color: #ffe2bf; background: rgba(255, 183, 77, 0.16); border-color: rgba(255, 183, 77, 0.24); }
+    .type-unknown { color: #d7e5ff; background: rgba(132, 151, 184, 0.16); border-color: rgba(132, 151, 184, 0.22); }
+
+    .panel-title {
+      margin-bottom: 2px;
+      font-size: 1.15rem;
+    }
+
+    .panel-subtitle {
+      color: var(--muted);
+      font-size: 0.92rem;
+      margin-bottom: 18px;
+    }
+
+    .device-meta {
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .component-card, .threat-card {
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 18px;
+      background: rgba(11, 18, 32, 0.62);
+      padding: 16px;
+      height: 100%;
+    }
+
+    .metric-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .component-score {
+      font-size: 1.6rem;
+      font-weight: 700;
+    }
+
+    .detail-chip {
+      display: inline-block;
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      background: rgba(77, 208, 225, 0.14);
+      color: #cbf6ff;
+    }
+
+    .table-dark-custom {
+      --bs-table-bg: transparent;
+      --bs-table-color: var(--text);
+      --bs-table-border-color: rgba(255, 255, 255, 0.07);
+      --bs-table-striped-bg: rgba(255, 255, 255, 0.03);
+      --bs-table-hover-bg: rgba(77, 208, 225, 0.09);
+      --bs-table-hover-color: var(--text);
+    }
+
+    .empty-state {
+      padding: 32px;
+      text-align: center;
+      color: var(--muted);
+      border: 1px dashed rgba(255, 255, 255, 0.12);
+      border-radius: 18px;
+      background: rgba(8, 14, 24, 0.42);
+    }
+
+    .footer-note {
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    .btn-soc {
+      background: linear-gradient(135deg, #20324d, #2c496d);
+      color: #f2f7ff;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .btn-soc:hover {
+      color: #ffffff;
+      background: linear-gradient(135deg, #284060, #35567f);
+    }
+
+    .btn-soc:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+
+    .dashboard-layout {
+      display: grid;
+      grid-template-columns: 330px minmax(0, 1fr);
+      gap: 22px;
+      align-items: start;
+    }
+
+    .sidebar-card {
+      position: sticky;
+      top: 20px;
+      overflow: hidden;
+    }
+
+    .device-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-height: calc(100vh - 220px);
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .device-list::-webkit-scrollbar, .table-scroll::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+
+    .device-list::-webkit-scrollbar-thumb, .table-scroll::-webkit-scrollbar-thumb {
+      background: rgba(159, 176, 200, 0.28);
+      border-radius: 999px;
+    }
+
+    .device-item {
+      width: 100%;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 18px;
+      padding: 16px;
+      background: rgba(8, 14, 24, 0.54);
+      color: var(--text);
+      text-align: left;
+      transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .device-item:hover {
+      transform: translateY(-1px);
+      border-color: rgba(77, 208, 225, 0.28);
+      background: rgba(12, 20, 33, 0.82);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
+    }
+
+    .device-item.active {
+      border-color: rgba(77, 208, 225, 0.42);
+      background: linear-gradient(135deg, rgba(15, 29, 47, 0.98), rgba(12, 21, 34, 0.88));
+      box-shadow: inset 0 0 0 1px rgba(77, 208, 225, 0.12), 0 16px 40px rgba(0, 0, 0, 0.22);
+    }
+
+    .device-item-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .device-name {
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 1rem;
+      font-weight: 600;
+      line-height: 1.25;
+      margin-bottom: 4px;
+    }
+
+    .device-ip {
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .device-item-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .device-item-footer {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 0.84rem;
+    }
+
+    .table-scroll {
+      max-height: 420px;
+      overflow: auto;
+      border-radius: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(6, 12, 22, 0.45);
+    }
+
+    .live-app-table thead th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: rgba(13, 21, 34, 0.96);
+      backdrop-filter: blur(10px);
+    }
+
+    .live-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 14px;
+    }
+
+    .live-toolbar-actions {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 8px;
+    }
+
+    .main-stack > section {
+      margin-bottom: 18px;
+    }
+
+    .main-stack > section:last-child {
+      margin-bottom: 0;
+    }
+
+    @media (max-width: 1199.98px) {
+      .dashboard-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar-card {
+        position: static;
+      }
+
+      .device-list {
+        max-height: 360px;
+      }
+    }
+
+    @media (max-width: 991.98px) {
+      .shell { padding: 18px 14px 30px; }
+      .hero { padding: 20px; }
+      .live-toolbar-actions {
+        width: 100%;
+        align-items: stretch;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <section class="hero">
+      <div class="d-flex flex-column flex-lg-row align-items-lg-end justify-content-between gap-3">
+        <div>
+          <div class="brand text-uppercase small text-info mb-2">Presentation Layer</div>
+          <h1 class="mb-2">Endpoint Security Dashboard</h1>
+          <p class="hero-subtitle mb-0">
+            A presentation-focused web view built on top of the same scan results used by the desktop tool.
+            Risk scoring, threat modeling, and component analysis remain aligned with the existing workflow.
+          </p>
+        </div>
+        <div class="d-flex flex-column flex-sm-row gap-2 align-items-stretch align-items-sm-center">
+          <button id="refreshBtn" class="btn btn-soc">Refresh Dashboard</button>
+        </div>
+      </div>
+      <div class="d-flex flex-wrap gap-3 align-items-center mt-4">
+        <span id="riskBanner" class="risk-pill pill-unknown">No device selected</span>
+        <span id="deviceMeta" class="device-meta">Choose a device from the sidebar to load its dashboard.</span>
+        <span id="refreshMeta" class="footer-note"></span>
+      </div>
+    </section>
+
+    <div id="errorBanner" class="alert alert-danger d-none" role="alert"></div>
+
+    <div class="dashboard-layout">
+      <aside class="glass-card section-card sidebar-card">
+        <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+          <div>
+            <h2 class="panel-title mb-1">Devices</h2>
+            <p class="panel-subtitle mb-0">Select a saved endpoint to update every dashboard section instantly.</p>
+          </div>
+          <span id="deviceCount" class="detail-chip">0 devices</span>
+        </div>
+        <div id="deviceList" class="device-list">
+          <div class="empty-state">No device data available yet.</div>
+        </div>
+      </aside>
+
+      <main class="main-stack">
+
+    <section class="row g-3 mb-4" id="summaryCards">
+      <div class="col-md-4">
+        <div class="glass-card summary-card h-100">
+          <div class="summary-label">Risk Level</div>
+          <div id="riskLevelCard" class="summary-value">-</div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="glass-card summary-card h-100">
+          <div class="summary-label">Total Score</div>
+          <div id="riskScoreCard" class="summary-value">-</div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="glass-card summary-card h-100">
+          <div class="summary-label">Status</div>
+          <div id="statusCard" class="summary-value">-</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="row g-3 mb-4">
+      <div class="col-xl-6">
+        <div class="glass-card section-card">
+          <h2 class="panel-title">Risk Contribution</h2>
+          <p class="panel-subtitle">Component contribution based on the current endpoint's actual detected issues.</p>
+          <canvas id="riskChart" height="260"></canvas>
+        </div>
+      </div>
+      <div class="col-xl-6">
+        <div class="glass-card section-card">
+          <h2 class="panel-title">Threat Category Breakdown</h2>
+          <p class="panel-subtitle">Generated threat scenarios grouped by security category.</p>
+          <canvas id="threatChart" height="260"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <section class="row g-3 mb-4">
+      <div class="col-xl-7">
+        <div class="glass-card section-card h-100">
+          <h2 class="panel-title">Threat Analysis</h2>
+          <p class="panel-subtitle">NIST SP 800-30 aligned scoring with NIST CSF 2.0 function mapping.</p>
+          <div id="threatList" class="row g-3"></div>
+        </div>
+      </div>
+      <div class="col-xl-5">
+        <div class="glass-card section-card h-100">
+          <h2 class="panel-title">Security Components</h2>
+          <p class="panel-subtitle">Status snapshots for firewall, antivirus, patching, ports, services, and software.</p>
+          <div id="componentGrid" class="row g-3"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="row g-3">
+      <div class="col-12">
+        <div class="glass-card section-card">
+          <div class="live-toolbar">
+            <div>
+              <h2 class="panel-title mb-1">Live Applications</h2>
+              <p id="liveNote" class="panel-subtitle mb-0">Live application data will appear here when available.</p>
+            </div>
+            <div class="live-toolbar-actions">
+              <button id="liveRefreshBtn" class="btn btn-soc btn-sm">Refresh Apps</button>
+              <span id="liveRefreshMeta" class="footer-note"></span>
+            </div>
+          </div>
+          <div class="table-scroll">
+            <table class="table table-dark table-striped table-hover table-dark-custom align-middle mb-0 live-app-table">
+              <thead>
+                <tr>
+                  <th>Process Name</th>
+                  <th class="text-center">PID</th>
+                  <th class="text-center">CPU</th>
+                  <th class="text-center">Memory (MB)</th>
+                </tr>
+              </thead>
+              <tbody id="liveAppsTable"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    const state = {
+      devices: [],
+      currentDeviceId: null,
+      charts: {
+        risk: null,
+        threat: null,
+      },
+      liveRefreshPending: false,
+    };
+
+    const API_BASE = window.location.protocol === "file:" ? "http://127.0.0.1:5000" : window.location.origin;
+
+    const levelClass = {
+      HIGH: "pill-high",
+      CRITICAL: "pill-high",
+      MEDIUM: "pill-medium",
+      LOW: "pill-low",
+      UNKNOWN: "pill-unknown",
+    };
+
+    const typeClass = {
+      Windows: "type-windows",
+      Mobile: "type-mobile",
+      Unknown: "type-unknown",
+    };
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
+    function showError(message) {
+      const banner = document.getElementById("errorBanner");
+      banner.textContent = message;
+      banner.classList.remove("d-none");
+    }
+
+    function clearError() {
+      document.getElementById("errorBanner").classList.add("d-none");
+    }
+
+    async function api(url) {
+      const response = await fetch(`${API_BASE}${url}`);
+      if (!response.ok) {
+        throw new Error(`Request failed: ${response.status}`);
+      }
+      return response.json();
+    }
+
+    function formatDateTime(value) {
+      if (!value) {
+        return "Unavailable";
+      }
+      const parsed = new Date(value);
+      if (Number.isNaN(parsed.getTime())) {
+        return String(value);
+      }
+      return parsed.toLocaleString();
+    }
+
+    function formatMetric(value, digits = 1) {
+      const numeric = Number(value);
+      return Number.isFinite(numeric) ? numeric.toFixed(digits) : "-";
+    }
+
+    function getStatusInfo(status) {
+      const raw = String(status || "Unknown").trim();
+      const lowered = raw.toLowerCase();
+      if (lowered.includes("offline")) {
+        return { label: "Offline", className: "status-offline" };
+      }
+      if (lowered.includes("failed")) {
+        return { label: "Connection Failed", className: "status-warning" };
+      }
+      return { label: raw === "Unknown" ? "Unknown" : "Online", className: "status-online" };
+    }
+
+    function setRefreshMeta() {
+      const mode = window.location.protocol === "file:" ? ` via ${API_BASE}` : "";
+      document.getElementById("refreshMeta").textContent = `Presentation view refreshed at ${new Date().toLocaleTimeString()}${mode}`;
+    }
+
+    function setLiveRefreshButtonState(busy) {
+      state.liveRefreshPending = busy;
+      const button = document.getElementById("liveRefreshBtn");
+      button.disabled = busy || !state.currentDeviceId;
+      button.textContent = busy ? "Refreshing..." : "Refresh Apps";
+    }
+
+    function renderDeviceList() {
+      const container = document.getElementById("deviceList");
+      const count = state.devices.length;
+      document.getElementById("deviceCount").textContent = `${count} device${count === 1 ? "" : "s"}`;
+      container.innerHTML = "";
+
+      if (!state.devices.length) {
+        container.innerHTML = `<div class="empty-state">Run the scanner or desktop dashboard first so device results are available here.</div>`;
+        return;
+      }
+
+      state.devices.forEach((device) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = `device-item${device.device_id === state.currentDeviceId ? " active" : ""}`;
+        button.dataset.deviceId = device.device_id;
+
+        const status = getStatusInfo(device.status);
+        const deviceType = String(device.device_type || "Unknown");
+        const riskLevel = String(device.risk_level || "UNKNOWN").toUpperCase();
+
+        button.innerHTML = `
+          <div class="device-item-top">
+            <div>
+              <div class="device-name">${escapeHtml(device.hostname || device.ip_address || device.device_id)}</div>
+              <div class="device-ip">${escapeHtml(device.ip_address || "No IP address")}</div>
+            </div>
+            <span class="risk-pill ${levelClass[riskLevel] || "pill-unknown"}">${escapeHtml(riskLevel)}</span>
+          </div>
+          <div class="device-item-meta">
+            <span class="status-pill ${status.className}">${escapeHtml(status.label)}</span>
+            <span class="type-pill ${typeClass[deviceType] || "type-unknown"}">${escapeHtml(device.device_type_label || deviceType)}</span>
+          </div>
+          <div class="device-item-footer">
+            <span>Score ${escapeHtml(device.risk_score ?? 0)}</span>
+            <span>${device.last_scan_at ? `Scanned ${escapeHtml(formatDateTime(device.last_scan_at))}` : "Not scanned yet"}</span>
+          </div>
+        `;
+
+        button.addEventListener("click", () => {
+          if (state.currentDeviceId === device.device_id) {
+            return;
+          }
+          selectDevice(device.device_id).catch((error) => {
+            showError(error.message || "Unable to load the selected device.");
+          });
+        });
+
+        container.appendChild(button);
+      });
+    }
+
+    function renderSummary(summary, riskSummary) {
+      document.getElementById("riskLevelCard").textContent = summary.risk_level;
+      document.getElementById("riskScoreCard").textContent = summary.risk_score;
+      document.getElementById("statusCard").textContent = summary.status;
+
+      const banner = document.getElementById("riskBanner");
+      banner.className = `risk-pill ${levelClass[summary.risk_level] || "pill-unknown"}`;
+      banner.textContent = `${summary.risk_level} RISK`;
+
+      const meta = [
+        `${summary.hostname}`,
+        `${summary.ip_address}`,
+        `${summary.device_type_label || summary.device_type || "Unknown Device"}`,
+        `Status: ${summary.status}`,
+        summary.last_scan_at ? `Last scan: ${formatDateTime(summary.last_scan_at)}` : "Last scan: unavailable",
+      ];
+      document.getElementById("deviceMeta").textContent = meta.join(" | ");
+      document.getElementById("riskLevelCard").title = riskSummary || "";
+      setLiveRefreshButtonState(false);
+    }
+
+    function destroyChart(chartRef) {
+      if (chartRef) {
+        chartRef.destroy();
+      }
+    }
+
+    function renderRiskChart(contributions) {
+      const entries = Object.entries(contributions || {}).filter(([, value]) => Number(value || 0) > 0);
+      const labels = entries.length ? entries.map(([label]) => label) : ["Secure"];
+      const values = entries.length ? entries.map(([, value]) => Number(value || 0)) : [100];
+      const colors = entries.length
+        ? ["#ff6b6b", "#ff9f43", "#ffd166", "#4dd0e1", "#5eead4", "#95a4ff"].slice(0, labels.length)
+        : ["#43d17c"];
+
+      destroyChart(state.charts.risk);
+      state.charts.risk = new Chart(document.getElementById("riskChart"), {
+        type: "pie",
+        data: {
+          labels,
+          datasets: [{ data: values, backgroundColor: colors.slice(0, labels.length), borderColor: "#0d1524", borderWidth: 2 }],
+        },
+        options: {
+          plugins: {
+            legend: { labels: { color: "#ebf2ff" } },
+          },
+        },
+      });
+    }
+
+    function renderThreatChart(breakdown) {
+      const labels = Object.keys(breakdown || {});
+      const values = labels.map((label) => Number(breakdown[label] || 0));
+
+      destroyChart(state.charts.threat);
+      state.charts.threat = new Chart(document.getElementById("threatChart"), {
+        type: "bar",
+        data: {
+          labels: labels.length ? labels : ["No Threats"],
+          datasets: [{
+            label: "Threats",
+            data: values.length ? values : [0],
+            backgroundColor: ["#ff6b6b", "#ff9f43", "#ffd166", "#4dd0e1", "#43d17c", "#8ab4f8"],
+            borderRadius: 10,
+          }],
+        },
+        options: {
+          scales: {
+            x: { ticks: { color: "#ebf2ff" }, grid: { color: "rgba(255,255,255,0.06)" } },
+            y: { ticks: { color: "#ebf2ff", precision: 0 }, grid: { color: "rgba(255,255,255,0.06)" } },
+          },
+          plugins: {
+            legend: { display: false },
+          },
+        },
+      });
+    }
+
+    function renderThreats(threats) {
+      const container = document.getElementById("threatList");
+      if (!threats || !threats.length) {
+        container.innerHTML = `<div class="col-12"><div class="empty-state">No threats were generated for this device from the available findings.</div></div>`;
+        return;
+      }
+
+      container.innerHTML = threats.map((threat) => `
+        <div class="col-12">
+          <div class="threat-card">
+            <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
+              <div>
+                <div class="detail-chip mb-2">${threat.category}</div>
+                <h3 class="h5 mb-1">${threat.threat_title}</h3>
+              </div>
+              <span class="risk-pill ${levelClass[threat.risk_level] || "pill-unknown"}">${threat.risk_level}</span>
+            </div>
+            <div class="metric-row mb-3">
+              <span>NIST Function: ${threat.nist_function}</span>
+              <span>Likelihood ${threat.likelihood} x Impact ${threat.impact} = ${threat.score}</span>
+            </div>
+            <p class="mb-2">${threat.description || "No description provided."}</p>
+            <div class="footer-note"><strong>Recommendation:</strong> ${threat.recommendation || "No recommendation provided."}</div>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function renderComponents(components) {
+      const container = document.getElementById("componentGrid");
+      if (!components || !components.length) {
+        container.innerHTML = `<div class="col-12"><div class="empty-state">No component data available.</div></div>`;
+        return;
+      }
+
+      container.innerHTML = components.map((component) => `
+        <div class="col-12">
+          <div class="component-card">
+            <div class="d-flex justify-content-between align-items-start gap-3 mb-2">
+              <div>
+                <div class="detail-chip mb-2">${component.status}</div>
+                <h3 class="h5 mb-0">${component.name}</h3>
+              </div>
+              <div class="component-score">${component.score}</div>
+            </div>
+            <div class="metric-row mb-2">
+              <span>Contribution</span>
+              <span>${component.contribution}%</span>
+            </div>
+            <div class="footer-note">${component.details}</div>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function renderLiveApplications(apps, note, fetchedAt = null) {
+      document.getElementById("liveNote").textContent = note || "No live application context available.";
+      document.getElementById("liveRefreshMeta").textContent = fetchedAt ? `Last refreshed: ${formatDateTime(fetchedAt)}` : "";
+      const tbody = document.getElementById("liveAppsTable");
+      if (!apps || !apps.length) {
+        tbody.innerHTML = `<tr><td colspan="4" class="text-center text-secondary py-4">No live application data available.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = apps.map((app) => `
+        <tr>
+          <td>${escapeHtml(app.name || "-")}</td>
+          <td class="text-center">${escapeHtml(app.pid ?? "-")}</td>
+          <td class="text-center">${escapeHtml(formatMetric(app.cpu, 2))}</td>
+          <td class="text-center">${escapeHtml(formatMetric(app.memory_mb, 1))}</td>
+        </tr>
+      `).join("");
+    }
+
+    function renderEmptyDashboard() {
+      document.getElementById("riskLevelCard").textContent = "-";
+      document.getElementById("riskScoreCard").textContent = "-";
+      document.getElementById("statusCard").textContent = "-";
+      document.getElementById("riskBanner").className = "risk-pill pill-unknown";
+      document.getElementById("riskBanner").textContent = "NO DATA";
+      document.getElementById("deviceMeta").textContent = "No scan results are available yet.";
+      renderThreats([]);
+      renderComponents([]);
+      renderLiveApplications([], "Run the scanner or desktop dashboard first so the presentation layer has saved results to display.");
+      destroyChart(state.charts.risk);
+      destroyChart(state.charts.threat);
+      setLiveRefreshButtonState(false);
+    }
+
+    async function loadDevice(deviceId) {
+      if (!deviceId) {
+        renderEmptyDashboard();
+        return;
+      }
+
+      const requestedId = deviceId;
+      const payload = await api(`/device/${encodeURIComponent(deviceId)}`);
+      if (state.currentDeviceId !== requestedId) {
+        return;
+      }
+      renderSummary(payload.summary, payload.risk_summary);
+      renderRiskChart(payload.component_contributions || {});
+      renderThreatChart(payload.threat_category_breakdown || {});
+      renderThreats(payload.threats || []);
+      renderComponents(payload.security_components || []);
+      renderLiveApplications(payload.live_applications || [], payload.live_applications_note || "", new Date().toISOString());
+    }
+
+    async function selectDevice(deviceId) {
+      state.currentDeviceId = deviceId;
+      renderDeviceList();
+      clearError();
+      await loadDevice(deviceId);
+    }
+
+    async function refreshDevices() {
+      clearError();
+      const data = await api("/devices");
+      state.devices = data.devices || [];
+
+      const stillExists = state.devices.some((device) => device.device_id === state.currentDeviceId);
+      if (!state.currentDeviceId || !stillExists) {
+        state.currentDeviceId = state.devices[0] ? state.devices[0].device_id : null;
+      }
+
+      renderDeviceList();
+
+      if (state.currentDeviceId) {
+        await loadDevice(state.currentDeviceId);
+      } else {
+        renderEmptyDashboard();
+      }
+
+      setRefreshMeta();
+    }
+
+    async function refreshLiveApplications() {
+      if (!state.currentDeviceId || state.liveRefreshPending) {
+        return;
+      }
+
+      setLiveRefreshButtonState(true);
+      clearError();
+      try {
+        const requestedId = state.currentDeviceId;
+        const payload = await api(`/device/${encodeURIComponent(requestedId)}/live-applications`);
+        if (state.currentDeviceId !== requestedId) {
+          return;
+        }
+        renderLiveApplications(payload.live_applications || [], payload.live_applications_note || "", payload.fetched_at || null);
+      } catch (error) {
+        showError(error.message || "Unable to refresh live applications.");
+      } finally {
+        setLiveRefreshButtonState(false);
+      }
+    }
+
+    document.getElementById("refreshBtn").addEventListener("click", async () => {
+      try {
+        await refreshDevices();
+      } catch (error) {
+        showError(error.message || "Refresh failed.");
+      }
+    });
+
+    document.getElementById("liveRefreshBtn").addEventListener("click", async () => {
+      await refreshLiveApplications();
+    });
+
+    window.addEventListener("load", async () => {
+      try {
+        await refreshDevices();
+        window.setInterval(() => {
+          refreshDevices().catch((error) => showError(error.message || "Auto-refresh failed."));
+        }, 10000);
+      } catch (error) {
+        const message = window.location.protocol === "file:"
+          ? `Unable to reach the presentation server at ${API_BASE}. Start it with: python presentation_server.py`
+          : (error.message || "Unable to initialize the dashboard.");
+        showError(message);
+        renderEmptyDashboard();
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,49 @@
+{
+  "exported_at": "2026-03-21T15:00:03.705724",
+  "threats": [
+    {
+      "category": "Firewall",
+      "threat_title": "Unauthorized network access risk",
+      "risk_level": "HIGH",
+      "nist_function": "Protect",
+      "description": "Firewall is OFF for one or more profiles, allowing more inbound traffic than intended.",
+      "recommendation": "Enable Windows Firewall for all profiles and restrict inbound rules to only required services.",
+      "likelihood": 4,
+      "impact": 4,
+      "score": 16
+    },
+    {
+      "category": "OS / Patching",
+      "threat_title": "Potential missing cumulative updates",
+      "risk_level": "MEDIUM",
+      "nist_function": "Protect",
+      "description": "Unusually low number of HotFix entries suggests patching may not be complete.",
+      "recommendation": "Confirm Windows Update compliance and install missing cumulative updates.",
+      "likelihood": 3,
+      "impact": 2,
+      "score": 6
+    },
+    {
+      "category": "Open Ports",
+      "threat_title": "SMB exploitation risk (Port 445)",
+      "risk_level": "HIGH",
+      "nist_function": "Protect",
+      "description": "SMB (file sharing) port is exposed, increasing risk of wormable/malware-based attacks.",
+      "recommendation": "Disable SMB if not required, or restrict access using firewall rules (especially on Public networks).",
+      "likelihood": 4,
+      "impact": 4,
+      "score": 16
+    },
+    {
+      "category": "Services",
+      "threat_title": "SMB server service exposure",
+      "risk_level": "MEDIUM",
+      "nist_function": "Protect",
+      "description": "SMB server service is running, increasing exposure to file-sharing attacks if vulnerable.",
+      "recommendation": "Disable file sharing if not required, otherwise harden SMB and restrict network access via firewall.",
+      "likelihood": 3,
+      "impact": 4,
+      "score": 12
+    }
+  ]
+}

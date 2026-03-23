@@ -1,0 +1,1031 @@
+[
+  {
+    "hostname": "DESKTOP-QK99KTV",
+    "device_id": "10.210.219.68",
+    "target_ip": "10.210.219.68",
+    "risk_score": 14,
+    "risk_level": "HIGH",
+    "connection_status": "Online",
+    "last_scan_at": "2026-03-23T13:03:29.205584+05:30",
+    "vulnerabilities": [
+      {
+        "title": "Windows Firewall OFF",
+        "severity": "HIGH",
+        "description": "Firewall is OFF for profile(s): Private. What this means: Your computer?Ts built-in network protection is turned off for at least one network type. Why it matters: A firewall blocks unwanted network traffic. If it?Ts off, attackers and malware can reach your device more easily.",
+        "fix": "Turn on Windows Firewall for all profiles (Control Panel +' Windows Defender Firewall, or Windows Security +' Firewall & network protection)."
+      },
+      {
+        "title": "Risky port listening: 445",
+        "severity": "HIGH",
+        "description": "SMB exposed can increase risk of lateral movement and wormable exploits. What this means: Port 445 is used for Windows file sharing (SMB). If it?Ts open, attackers can sometimes use it to spread malware across the network. Why it matters: Open ports are like open doors on the network. Attackers scan for them to find targets.",
+        "fix": "If file sharing is not needed, disable SMB/file sharing. If needed, restrict it to trusted networks, block it on Public networks, and keep Windows fully updated."
+      },
+      {
+        "title": "Potentially risky service running: LanmanServer",
+        "severity": "HIGH",
+        "description": "SMB Server service. If running, ensure SMB is needed and hardened. What this means: The SMB file-sharing server is running on this device. Why it matters: Unneeded services increase attack surface. If attackers find a weakness, a running service gives them something to target.",
+        "fix": "If you don?Tt need file sharing, disable it. If needed, restrict sharing, disable SMBv1, and ensure firewall rules limit exposure."
+      },
+      {
+        "title": "Potentially risky service running: LanmanWorkstation",
+        "severity": "MEDIUM",
+        "description": "SMB client service. Typically normal; note for SMB exposure context. What this means: The SMB client component is running (normal for many systems). Why it matters: Unneeded services increase attack surface. If attackers find a weakness, a running service gives them something to target.",
+        "fix": "No action needed unless you are hardening SMB across the environment."
+      },
+      {
+        "title": "Unusually low patch count",
+        "severity": "MEDIUM",
+        "description": "Low HotFix count may indicate missing cumulative updates (or limited visibility). What this means: This device has fewer recorded updates than expected. Why it matters: A low patch count can mean the system is missing updates, or that update inventory is incomplete.",
+        "fix": "Run Windows Update and verify patching. If inventory is managed by IT, confirm reporting is working."
+      },
+      {
+        "title": "Script running as Administrator",
+        "severity": "INFO",
+        "description": "Admin execution increases potential impact if the process is compromised. What this means: This scan is running with full system privileges. Why it matters: If malware or an attacker controls an admin-level process, they can make deeper system changes.",
+        "fix": "Run tools as admin only when needed. For normal use, prefer running as a standard user."
+      }
+    ],
+    "system_info": {
+      "os_name": "Windows",
+      "os_version": "10.0.26200",
+      "os_release": "11",
+      "platform": "Windows-11-10.0.26200-SP0",
+      "hostname": "DESKTOP-QK99KTV",
+      "ip_address": "10.210.219.68"
+    },
+    "antivirus": {
+      "found": true,
+      "products": [
+        "Windows Defender"
+      ],
+      "method": "PowerShell CIM (SecurityCenter2)",
+      "error": null,
+      "status": "ENABLED",
+      "realtime_protection": true,
+      "details": [
+        "AV enabled/real-time status is best-effort; third-party AV reporting varies."
+      ]
+    },
+    "patches": {
+      "found": true,
+      "hotfix_ids": [
+        "KB5054156",
+        "KB5066128",
+        "KB5079473",
+        "KB5083532"
+      ],
+      "raw_table": [
+        "HotFixID  InstalledOn         Description",
+        "--------  -----------         -----------",
+        "KB5066128 03-03-2026 00:00:00 Update",
+        "KB5054156 03-03-2026 00:00:00 Update",
+        "KB5079473 11-03-2026 00:00:00 Security Update",
+        "KB5083532 10-03-2026 00:00:00 Security Update"
+      ],
+      "method": "PowerShell Get-HotFix",
+      "error": null,
+      "total_patches": 4,
+      "most_recent_patch_date": "2026-03-11T00:00:00+05:30",
+      "days_since_last_patch": 12,
+      "patch_warning": "Unusually low number of HotFix entries; the system may be missing updates."
+    },
+    "firewall": {
+      "profiles": {
+        "Domain": {
+          "state": "ON"
+        },
+        "Private": {
+          "state": "OFF"
+        },
+        "Public": {
+          "state": "ON"
+        }
+      },
+      "any_off": true,
+      "method": "netsh advfirewall",
+      "error": null,
+      "raw": "Domain Profile Settings: \n----------------------------------------------------------------------\nState                                 ON\nFirewall Policy                       BlockInbound,AllowOutbound\nLocalFirewallRules                    N/A (GPO-store only)\nLocalConSecRules                      N/A (GPO-store only)\nInboundUserNotification               Enable\nRemoteManagement                      Disable\nUnicastResponseToMulticast            Enable\n\nLogging:\nLogAllowedConnections                 Disable\nLogDroppedConnections                 Disable\nFileName                              %systemroot%\\system32\\LogFiles\\Firewall\\pfirewall.log\nMaxFileSize                           4096\n\n\nPrivate Profile Settings: \n----------------------------------------------------------------------\nState                                 OFF\nFirewall Policy                       BlockInbound,AllowOutbound\nLocalFirewallRules                    N/A (GPO-store only)\nLocalConSecRules                      N/A (GPO-store only)\nInboundUserNotification               Enable\nRemoteManagement                      Disable\nUnicastResponseToMulticast            Enable\n\nLogging:\nLogAllowedConnections                 Disable\nLogDroppedConnections                 Disable\nFileName                              %systemroot%\\system32\\LogFiles\\Firewall\\pfirewall.log\nMaxFileSize                           4096\n\n\nPublic Profile Settings: \n----------------------------------------------------------------------\nState                                 ON\nFirewall Policy                       BlockInbound,AllowOutbound\nLocalFirewallRules                    N/A (GPO-store only)\nLocalConSecRules                      N/A (GPO-store only)\nInboundUserNotification               Enable\nRemoteManagement                      Disable\nUnicastResponseToMulticast            Enable\n\nLogging:\nLogAllowedConnections                 Disable\nLogDroppedConnections                 Disable\nFileName                              %systemroot%\\system32\\LogFiles\\Firewall\\pfirewall.log\nMaxFileSize                           4096\n\nOk."
+    },
+    "open_ports": {
+      "method": "psutil.net_connections()",
+      "listening_ports": [
+        135,
+        139,
+        445,
+        5040,
+        5357,
+        5985,
+        42050,
+        47001,
+        49664,
+        49665,
+        49668,
+        49669,
+        49670,
+        49673,
+        49684,
+        49708
+      ],
+      "risky_open": [
+        {
+          "port": 445,
+          "severity": "HIGH",
+          "reason": "SMB exposed can increase risk of lateral movement and wormable exploits."
+        }
+      ],
+      "error": null
+    },
+    "services": {
+      "method": "psutil.win_service_iter()",
+      "running": [
+        {
+          "name": "AdobeARMservice",
+          "display_name": "Adobe Acrobat Update Service"
+        },
+        {
+          "name": "AppIDSvc",
+          "display_name": "Application Identity"
+        },
+        {
+          "name": "Appinfo",
+          "display_name": "Application Information"
+        },
+        {
+          "name": "AppXSvc",
+          "display_name": "AppX Deployment Service (AppXSVC)"
+        },
+        {
+          "name": "AudioEndpointBuilder",
+          "display_name": "Windows Audio Endpoint Builder"
+        },
+        {
+          "name": "Audiosrv",
+          "display_name": "Windows Audio"
+        },
+        {
+          "name": "BFE",
+          "display_name": "Base Filtering Engine"
+        },
+        {
+          "name": "BITS",
+          "display_name": "Background Intelligent Transfer Service"
+        },
+        {
+          "name": "BrokerInfrastructure",
+          "display_name": "Background Tasks Infrastructure Service"
+        },
+        {
+          "name": "BTAGService",
+          "display_name": "Bluetooth Audio Gateway Service"
+        },
+        {
+          "name": "BthAvctpSvc",
+          "display_name": "AVCTP service"
+        },
+        {
+          "name": "bthserv",
+          "display_name": "Bluetooth Support Service"
+        },
+        {
+          "name": "camsvc",
+          "display_name": "Capability Access Manager Service"
+        },
+        {
+          "name": "CDPSvc",
+          "display_name": "Connected Devices Platform Service"
+        },
+        {
+          "name": "ClickToRunSvc",
+          "display_name": "Microsoft Office Click-to-Run Service"
+        },
+        {
+          "name": "CoreMessagingRegistrar",
+          "display_name": "CoreMessaging"
+        },
+        {
+          "name": "cplspcon",
+          "display_name": "Intel(R) Content Protection HDCP Service"
+        },
+        {
+          "name": "CryptSvc",
+          "display_name": "Cryptographic Services"
+        },
+        {
+          "name": "DcomLaunch",
+          "display_name": "DCOM Server Process Launcher"
+        },
+        {
+          "name": "DeviceAssociationService",
+          "display_name": "Device Association Service"
+        },
+        {
+          "name": "DevQueryBroker",
+          "display_name": "DevQuery Background Discovery Broker"
+        },
+        {
+          "name": "Dhcp",
+          "display_name": "DHCP Client"
+        },
+        {
+          "name": "DiagTrack",
+          "display_name": "Connected User Experiences and Telemetry"
+        },
+        {
+          "name": "DispBrokerDesktopSvc",
+          "display_name": "Display Policy Service"
+        },
+        {
+          "name": "DisplayEnhancementService",
+          "display_name": "Display Enhancement Service"
+        },
+        {
+          "name": "Dnscache",
+          "display_name": "DNS Client"
+        },
+        {
+          "name": "DolbyDAXAPI",
+          "display_name": "Dolby DAX API Service"
+        },
+        {
+          "name": "DoSvc",
+          "display_name": "Delivery Optimization"
+        },
+        {
+          "name": "DPS",
+          "display_name": "Diagnostic Policy Service"
+        },
+        {
+          "name": "dptftcs",
+          "display_name": "Intel(R) Dynamic Tuning Technology Telemetry Service"
+        },
+        {
+          "name": "DusmSvc",
+          "display_name": "Data Usage"
+        },
+        {
+          "name": "ElevocService",
+          "display_name": "Elevoc Control Service"
+        },
+        {
+          "name": "EventLog",
+          "display_name": "Windows Event Log"
+        },
+        {
+          "name": "EventSystem",
+          "display_name": "COM+ Event System"
+        },
+        {
+          "name": "fdPHost",
+          "display_name": "Function Discovery Provider Host"
+        },
+        {
+          "name": "FDResPub",
+          "display_name": "Function Discovery Resource Publication"
+        },
+        {
+          "name": "FontCache",
+          "display_name": "Windows Font Cache Service"
+        },
+        {
+          "name": "FrameServer",
+          "display_name": "Windows Camera Frame Server"
+        },
+        {
+          "name": "gpsvc",
+          "display_name": "Group Policy Client"
+        },
+        {
+          "name": "HvHost",
+          "display_name": "HV Host Service"
+        },
+        {
+          "name": "igccservice",
+          "display_name": "Intel(R) Graphics Command Center Service"
+        },
+        {
+          "name": "IKEEXT",
+          "display_name": "IKE and AuthIP IPsec Keying Modules"
+        },
+        {
+          "name": "InstallService",
+          "display_name": "Microsoft Store Install Service"
+        },
+        {
+          "name": "IntelAudioService",
+          "display_name": "Intel(R) Audio Service"
+        },
+        {
+          "name": "InventorySvc",
+          "display_name": "Inventory and Compatibility Appraisal service"
+        },
+        {
+          "name": "ipfsvc",
+          "display_name": "Intel(R) Innovation Platform Framework Service"
+        },
+        {
+          "name": "iphlpsvc",
+          "display_name": "IP Helper"
+        },
+        {
+          "name": "jhi_service",
+          "display_name": "Intel(R) Dynamic Application Loader Host Interface Service"
+        },
+        {
+          "name": "KeyIso",
+          "display_name": "CNG Key Isolation"
+        },
+        {
+          "name": "LanmanServer",
+          "display_name": "Server"
+        },
+        {
+          "name": "LanmanWorkstation",
+          "display_name": "Workstation"
+        },
+        {
+          "name": "LenovoFnAndFunctionKeys",
+          "display_name": "Lenovo Fn and function keys service"
+        },
+        {
+          "name": "lfsvc",
+          "display_name": "Geolocation Service"
+        },
+        {
+          "name": "LicenseManager",
+          "display_name": "Windows License Manager Service"
+        },
+        {
+          "name": "LITSSVC",
+          "display_name": "Lenovo Notebook ITS Service"
+        },
+        {
+          "name": "lmhosts",
+          "display_name": "TCP/IP NetBIOS Helper"
+        },
+        {
+          "name": "LSM",
+          "display_name": "Local Session Manager"
+        },
+        {
+          "name": "MDCoreSvc",
+          "display_name": "Microsoft Defender Core Service"
+        },
+        {
+          "name": "midisrv",
+          "display_name": "Windows MIDI Service"
+        },
+        {
+          "name": "mpssvc",
+          "display_name": "Windows Defender Firewall"
+        },
+        {
+          "name": "NcbService",
+          "display_name": "Network Connection Broker"
+        },
+        {
+          "name": "NcdAutoSetup",
+          "display_name": "Network Connected Devices Auto-Setup"
+        },
+        {
+          "name": "netprofm",
+          "display_name": "Network List Service"
+        },
+        {
+          "name": "NgcCtnrSvc",
+          "display_name": "Microsoft Passport Container"
+        },
+        {
+          "name": "NgcSvc",
+          "display_name": "Microsoft Passport"
+        },
+        {
+          "name": "nsi",
+          "display_name": "Network Store Interface Service"
+        },
+        {
+          "name": "PcaSvc",
+          "display_name": "Program Compatibility Assistant Service"
+        },
+        {
+          "name": "PhoneSvc",
+          "display_name": "Phone Service"
+        },
+        {
+          "name": "PlugPlay",
+          "display_name": "Plug and Play"
+        },
+        {
+          "name": "PolicyAgent",
+          "display_name": "IPsec Policy Agent"
+        },
+        {
+          "name": "Power",
+          "display_name": "Power"
+        },
+        {
+          "name": "ProfSvc",
+          "display_name": "User Profile Service"
+        },
+        {
+          "name": "RasMan",
+          "display_name": "Remote Access Connection Manager"
+        },
+        {
+          "name": "RmSvc",
+          "display_name": "Radio Management Service"
+        },
+        {
+          "name": "RpcEptMapper",
+          "display_name": "RPC Endpoint Mapper"
+        },
+        {
+          "name": "RpcSs",
+          "display_name": "Remote Procedure Call (RPC)"
+        },
+        {
+          "name": "RtkAudioUniversalService",
+          "display_name": "Realtek Audio Universal Service"
+        },
+        {
+          "name": "RtkBtManServ",
+          "display_name": "Realtek Bluetooth Device Manager Service"
+        },
+        {
+          "name": "SamSs",
+          "display_name": "Security Accounts Manager"
+        },
+        {
+          "name": "Schedule",
+          "display_name": "Task Scheduler"
+        },
+        {
+          "name": "seclogon",
+          "display_name": "Secondary Logon"
+        },
+        {
+          "name": "SecurityHealthService",
+          "display_name": "Windows Security Service"
+        },
+        {
+          "name": "SENS",
+          "display_name": "System Event Notification Service"
+        },
+        {
+          "name": "SensorService",
+          "display_name": "Sensor Service"
+        },
+        {
+          "name": "ShellHWDetection",
+          "display_name": "Shell Hardware Detection"
+        },
+        {
+          "name": "Spooler",
+          "display_name": "Print Spooler"
+        },
+        {
+          "name": "SSDPSRV",
+          "display_name": "SSDP Discovery"
+        },
+        {
+          "name": "SstpSvc",
+          "display_name": "Secure Socket Tunneling Protocol Service"
+        },
+        {
+          "name": "StateRepository",
+          "display_name": "State Repository Service"
+        },
+        {
+          "name": "StorSvc",
+          "display_name": "Storage Service"
+        },
+        {
+          "name": "SysMain",
+          "display_name": "SysMain"
+        },
+        {
+          "name": "SystemEventsBroker",
+          "display_name": "System Events Broker"
+        },
+        {
+          "name": "TextInputManagementService",
+          "display_name": "Text Input Management Service"
+        },
+        {
+          "name": "Themes",
+          "display_name": "Themes"
+        },
+        {
+          "name": "TimeBrokerSvc",
+          "display_name": "Time Broker"
+        },
+        {
+          "name": "TokenBroker",
+          "display_name": "Web Account Manager"
+        },
+        {
+          "name": "TrkWks",
+          "display_name": "Distributed Link Tracking Client"
+        },
+        {
+          "name": "TrustedInstaller",
+          "display_name": "Windows Modules Installer"
+        },
+        {
+          "name": "UltraViewService",
+          "display_name": "UltraViewer Service"
+        },
+        {
+          "name": "UserManager",
+          "display_name": "User Manager"
+        },
+        {
+          "name": "UsoSvc",
+          "display_name": "Update Orchestrator Service"
+        },
+        {
+          "name": "VaultSvc",
+          "display_name": "Credential Manager"
+        },
+        {
+          "name": "WbioSrvc",
+          "display_name": "Windows Biometric Service"
+        },
+        {
+          "name": "Wcmsvc",
+          "display_name": "Windows Connection Manager"
+        },
+        {
+          "name": "WdiSystemHost",
+          "display_name": "Diagnostic System Host"
+        },
+        {
+          "name": "WdNisSvc",
+          "display_name": "Microsoft Defender Antivirus Network Inspection Service"
+        },
+        {
+          "name": "webthreatdefsvc",
+          "display_name": "Web Threat Defense Service"
+        },
+        {
+          "name": "WFDSConMgrSvc",
+          "display_name": "Wi-Fi Direct Services Connection Manager Service"
+        },
+        {
+          "name": "whesvc",
+          "display_name": "Windows Health and Optimized Experiences"
+        },
+        {
+          "name": "WinDefend",
+          "display_name": "Microsoft Defender Antivirus Service"
+        },
+        {
+          "name": "WinHttpAutoProxySvc",
+          "display_name": "WinHTTP Web Proxy Auto-Discovery Service"
+        },
+        {
+          "name": "Winmgmt",
+          "display_name": "Windows Management Instrumentation"
+        },
+        {
+          "name": "WinRM",
+          "display_name": "Windows Remote Management (WS-Management)"
+        },
+        {
+          "name": "WlanSvc",
+          "display_name": "WLAN AutoConfig"
+        },
+        {
+          "name": "wlidsvc",
+          "display_name": "Microsoft Account Sign-in Assistant"
+        },
+        {
+          "name": "WMIRegistrationService",
+          "display_name": "Intel(R) Management Engine WMI Provider Registration"
+        },
+        {
+          "name": "WpnService",
+          "display_name": "Windows Push Notifications System Service"
+        },
+        {
+          "name": "WSAIFabricSvc",
+          "display_name": "WSAIFabricSvc"
+        },
+        {
+          "name": "wscsvc",
+          "display_name": "Security Center"
+        },
+        {
+          "name": "WSearch",
+          "display_name": "Windows Search"
+        },
+        {
+          "name": "BluetoothUserService_120178e",
+          "display_name": "Bluetooth User Support Service_120178e"
+        },
+        {
+          "name": "cbdhsvc_120178e",
+          "display_name": "Clipboard User Service_120178e"
+        },
+        {
+          "name": "CDPUserSvc_120178e",
+          "display_name": "Connected Devices Platform User Service_120178e"
+        },
+        {
+          "name": "DevicesFlowUserSvc_120178e",
+          "display_name": "DevicesFlow_120178e"
+        },
+        {
+          "name": "NPSMSvc_120178e",
+          "display_name": "Now Playing Session Manager Service_120178e"
+        },
+        {
+          "name": "OneSyncSvc_120178e",
+          "display_name": "Sync Host_120178e"
+        },
+        {
+          "name": "UdkUserSvc_120178e",
+          "display_name": "Udk User Service_120178e"
+        },
+        {
+          "name": "webthreatdefusersvc_120178e",
+          "display_name": "Web Threat Defense User Service_120178e"
+        },
+        {
+          "name": "WpnUserService_120178e",
+          "display_name": "Windows Push Notifications User Service_120178e"
+        }
+      ],
+      "highlighted": [
+        {
+          "name": "LanmanServer",
+          "severity": "HIGH",
+          "reason": "SMB Server service. If running, ensure SMB is needed and hardened."
+        },
+        {
+          "name": "LanmanWorkstation",
+          "severity": "MEDIUM",
+          "reason": "SMB client service. Typically normal; note for SMB exposure context."
+        }
+      ],
+      "error": null
+    },
+    "third_party_software": {
+      "apps": [
+        {
+          "name": "llDat",
+          "version": "Unknown",
+          "publisher": "Unknown",
+          "install_date": "Unknown"
+        },
+        {
+          "name": "e",
+          "version": "Unknown",
+          "publisher": "Unknown",
+          "install_date": "Unknown"
+        },
+        {
+          "name": "Adobe Acrobat (64-bit)",
+          "version": "25.001.21288",
+          "publisher": "Adobe",
+          "install_date": "20..."
+        },
+        {
+          "name": "Adobe Refresh Manager",
+          "version": "1.8.0",
+          "publisher": "Adobe Systems Incorporated",
+          "install_date": "20..."
+        },
+        {
+          "name": "Comet",
+          "version": "145.1.7632.3200",
+          "publisher": "The Comet Authors",
+          "install_date": "20..."
+        },
+        {
+          "name": "Cursor (User)",
+          "version": "2.6.20",
+          "publisher": "Anysphere",
+          "install_date": "20..."
+        },
+        {
+          "name": "Git",
+          "version": "2.53.0.2",
+          "publisher": "The Git Development Community 20...",
+          "install_date": "Unknown"
+        },
+        {
+          "name": "GitHub CLI",
+          "version": "2.88.1",
+          "publisher": "GitHub, Inc.",
+          "install_date": "20..."
+        },
+        {
+          "name": "Google Chrome",
+          "version": "146.0.7680.80",
+          "publisher": "Google LLC",
+          "install_date": "20..."
+        },
+        {
+          "name": "Microsoft 365 Apps for business - en-us",
+          "version": "16.0.19725.20190 Microsoft Corporation",
+          "publisher": "Unknown",
+          "install_date": "Unknown"
+        },
+        {
+          "name": "Microsoft Edge",
+          "version": "146.0.3856.72",
+          "publisher": "Microsoft Corporation",
+          "install_date": "20..."
+        },
+        {
+          "name": "Microsoft Edge WebView2 Runtime",
+          "version": "146.0.3856.72",
+          "publisher": "Microsoft Corporation",
+          "install_date": "20..."
+        },
+        {
+          "name": "Microsoft OneDrive",
+          "version": "26.035.0222.0002 Microsoft Corporation",
+          "publisher": "Unknown",
+          "install_date": "Unknown"
+        },
+        {
+          "name": "Microsoft Teams Meeting Add-in for Microsoft Office",
+          "version": "1.26.02603",
+          "publisher": "Microsoft",
+          "install_date": "20..."
+        },
+        {
+          "name": "Microsoft Visual C++ 2015-2022 Redistributable (x64) - 14.44.35211 14.44.35211.0",
+          "version": "Microsoft Corporation",
+          "publisher": "Unknown",
+          "install_date": "Unknown"
+        },
+        {
+          "name": "Microsoft Visual C++ 2015-2022 Redistributable (x86) - 14.44.35211 14.44.35211.0",
+          "version": "Microsoft Corporation",
+          "publisher": "Unknown",
+          "install_date": "Unknown"
+        },
+        {
+          "name": "Microsoft Visual C++ 2022 X64 Additional Runtime - 14.44.35211",
+          "version": "14.44.35211",
+          "publisher": "Microsoft Corporation",
+          "install_date": "20..."
+        },
+        {
+          "name": "Microsoft Visual C++ 2022 X64 Minimum Runtime - 14.44.35211",
+          "version": "14.44.35211",
+          "publisher": "Microsoft Corporation",
+          "install_date": "20..."
+        },
+        {
+          "name": "Microsoft Visual C++ 2022 X86 Additional Runtime - 14.44.35211",
+          "version": "14.44.35211",
+          "publisher": "Microsoft Corporation",
+          "install_date": "20..."
+        },
+        {
+          "name": "Microsoft Visual C++ 2022 X86 Minimum Runtime - 14.44.35211",
+          "version": "14.44.35211",
+          "publisher": "Microsoft Corporation",
+          "install_date": "20..."
+        },
+        {
+          "name": "Microsoft Visual Studio Code (User)",
+          "version": "1.112.0",
+          "publisher": "Microsoft Corporation",
+          "install_date": "20..."
+        },
+        {
+          "name": "Node.js",
+          "version": "24.14.0",
+          "publisher": "Node.js Foundation",
+          "install_date": "20..."
+        },
+        {
+          "name": "Office 16 Click-to-Run Extensibility Component",
+          "version": "16.0.19725.20190 Microsoft Corporation",
+          "publisher": "20...",
+          "install_date": "Unknown"
+        },
+        {
+          "name": "Python 3.14.3 (64-bit)",
+          "version": "3.14.3150.0",
+          "publisher": "Python Software Foundation",
+          "install_date": "Unknown"
+        },
+        {
+          "name": "Python 3.14.3 Add to Path (64-bit)",
+          "version": "3.14.3150.0",
+          "publisher": "Python Software Foundation",
+          "install_date": "20..."
+        },
+        {
+          "name": "Python 3.14.3 Core Interpreter (64-bit)",
+          "version": "3.14.3150.0",
+          "publisher": "Python Software Foundation",
+          "install_date": "20..."
+        },
+        {
+          "name": "Python 3.14.3 Development Libraries (64-bit)",
+          "version": "3.14.3150.0",
+          "publisher": "Python Software Foundation",
+          "install_date": "20..."
+        },
+        {
+          "name": "Python 3.14.3 Documentation (64-bit)",
+          "version": "3.14.3150.0",
+          "publisher": "Python Software Foundation",
+          "install_date": "20..."
+        },
+        {
+          "name": "Python 3.14.3 Executables (64-bit)",
+          "version": "3.14.3150.0",
+          "publisher": "Python Software Foundation",
+          "install_date": "20..."
+        },
+        {
+          "name": "Python 3.14.3 pip Bootstrap (64-bit)",
+          "version": "3.14.3150.0",
+          "publisher": "Python Software Foundation",
+          "install_date": "20..."
+        },
+        {
+          "name": "Python 3.14.3 Standard Library (64-bit)",
+          "version": "3.14.3150.0",
+          "publisher": "Python Software Foundation",
+          "install_date": "20..."
+        },
+        {
+          "name": "Python 3.14.3 Tcl/Tk Support (64-bit)",
+          "version": "3.14.3150.0",
+          "publisher": "Python Software Foundation",
+          "install_date": "20..."
+        },
+        {
+          "name": "Python 3.14.3 Test Suite (64-bit)",
+          "version": "3.14.3150.0",
+          "publisher": "Python Software Foundation",
+          "install_date": "20..."
+        },
+        {
+          "name": "Python Launcher",
+          "version": "3.14.3150.0",
+          "publisher": "Python Software Foundation",
+          "install_date": "20..."
+        },
+        {
+          "name": "Stremio version 5.0.16",
+          "version": "5.0.16",
+          "publisher": "Smart Code OOD",
+          "install_date": "20..."
+        },
+        {
+          "name": "UltraViewer version 6.6.124",
+          "version": "6.6.124",
+          "publisher": "DucFabulous",
+          "install_date": "20..."
+        }
+      ],
+      "potentially_outdated": [
+        {
+          "name": "llDat",
+          "version": "Unknown",
+          "reason": "version not available"
+        },
+        {
+          "name": "e",
+          "version": "Unknown",
+          "reason": "version not available"
+        }
+      ],
+      "error": null,
+      "method": "PowerShell registry query",
+      "risky_apps": []
+    },
+    "installed_apps": [
+      {
+        "name": "Adobe Acrobat (64-bit)",
+        "version": "25.001.21288"
+      },
+      {
+        "name": "Adobe Refresh Manager",
+        "version": "1.8.0"
+      },
+      {
+        "name": "Git",
+        "version": "2.53.0.2"
+      },
+      {
+        "name": "GitHub CLI",
+        "version": "2.88.1"
+      },
+      {
+        "name": "Google Chrome",
+        "version": "146.0.7680.80"
+      },
+      {
+        "name": "Microsoft 365 Apps for business - en-us",
+        "version": "16.0.19725.20190"
+      },
+      {
+        "name": "Microsoft Edge",
+        "version": "146.0.3856.72"
+      },
+      {
+        "name": "Microsoft Edge WebView2 Runtime",
+        "version": "146.0.3856.72"
+      },
+      {
+        "name": "Microsoft OneDrive",
+        "version": "26.035.0222.0002"
+      },
+      {
+        "name": "Microsoft Teams Meeting Add-in for Microsoft Office",
+        "version": "1.26.02603"
+      },
+      {
+        "name": "Microsoft Visual C++ 2015-2022 Redistributable (x64) - 14.44.35211",
+        "version": "14.44.35211.0"
+      },
+      {
+        "name": "Microsoft Visual C++ 2015-2022 Redistributable (x86) - 14.44.35211",
+        "version": "14.44.35211.0"
+      },
+      {
+        "name": "Microsoft Visual C++ 2022 X64 Additional Runtime - 14.44.35211",
+        "version": "14.44.35211"
+      },
+      {
+        "name": "Microsoft Visual C++ 2022 X64 Minimum Runtime - 14.44.35211",
+        "version": "14.44.35211"
+      },
+      {
+        "name": "Microsoft Visual C++ 2022 X86 Additional Runtime - 14.44.35211",
+        "version": "14.44.35211"
+      },
+      {
+        "name": "Microsoft Visual C++ 2022 X86 Minimum Runtime - 14.44.35211",
+        "version": "14.44.35211"
+      },
+      {
+        "name": "Node.js",
+        "version": "24.14.0"
+      },
+      {
+        "name": "Office 16 Click-to-Run Extensibility Component",
+        "version": "16.0.19725.20190"
+      },
+      {
+        "name": "Python 3.14.3 Add to Path (64-bit)",
+        "version": "3.14.3150.0"
+      },
+      {
+        "name": "Python 3.14.3 Core Interpreter (64-bit)",
+        "version": "3.14.3150.0"
+      },
+      {
+        "name": "Python 3.14.3 Development Libraries (64-bit)",
+        "version": "3.14.3150.0"
+      },
+      {
+        "name": "Python 3.14.3 Documentation (64-bit)",
+        "version": "3.14.3150.0"
+      },
+      {
+        "name": "Python 3.14.3 Executables (64-bit)",
+        "version": "3.14.3150.0"
+      },
+      {
+        "name": "Python 3.14.3 pip Bootstrap (64-bit)",
+        "version": "3.14.3150.0"
+      },
+      {
+        "name": "Python 3.14.3 Standard Library (64-bit)",
+        "version": "3.14.3150.0"
+      },
+      {
+        "name": "Python 3.14.3 Tcl/Tk Support (64-bit)",
+        "version": "3.14.3150.0"
+      },
+      {
+        "name": "Python 3.14.3 Test Suite (64-bit)",
+        "version": "3.14.3150.0"
+      },
+      {
+        "name": "Python Launcher",
+        "version": "3.14.3150.0"
+      },
+      {
+        "name": "UltraViewer version 6.6.124",
+        "version": "6.6.124"
+      }
+    ],
+    "risky_apps": [],
+    "device_type": "Windows",
+    "device_type_label": "Windows PC",
+    "scan_supported": true,
+    "device_type_reason": "OS hints report Windows."
+  }
+]
