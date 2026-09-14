@@ -1,0 +1,97 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "endpointradar"
+version = "1.0.0"
+description = "Agentless Windows endpoint security posture scanner with network discovery and NIST CSF threat analysis."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Aryan Walia" }]
+keywords = [
+    "security",
+    "endpoint-security",
+    "windows",
+    "security-audit",
+    "vulnerability-scanner",
+    "blue-team",
+    "nist-csf",
+    "winrm",
+    "agentless",
+    "posture-management",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: System Administrators",
+    "Intended Audience :: Information Technology",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: Microsoft :: Windows",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Security",
+    "Topic :: System :: Systems Administration",
+]
+dependencies = [
+    "psutil>=5.9",
+]
+
+[project.optional-dependencies]
+# Agentless scanning of remote Windows hosts over WinRM.
+remote = ["pywinrm>=0.4.3"]
+# Word and Excel report generation.
+report = ["python-docx>=1.1", "openpyxl>=3.1"]
+# Tkinter desktop dashboard (tkinter itself ships with Python).
+gui = ["matplotlib>=3.8", "python-docx>=1.1", "openpyxl>=3.1"]
+# Read-only web dashboard and JSON API.
+web = ["Flask>=3.0"]
+all = [
+    "pywinrm>=0.4.3",
+    "python-docx>=1.1",
+    "openpyxl>=3.1",
+    "matplotlib>=3.8",
+    "Flask>=3.0",
+]
+dev = ["pytest>=8.0", "ruff>=0.5"]
+
+[project.urls]
+Homepage = "https://4ryanwalia.github.io/EndpointRadar/"
+Repository = "https://github.com/4ryanwalia/EndpointRadar"
+Issues = "https://github.com/4ryanwalia/EndpointRadar/issues"
+
+[project.scripts]
+endpointradar = "endpointradar.cli:main"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+endpointradar = ["templates/*.html"]
+
+[tool.ruff]
+line-length = 127
+target-version = "py310"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B"]
+ignore = [
+    "E501",   # long strings in report text are intentional
+    "B008",
+    "B904",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"src/endpointradar/gui.py" = ["E402"]  # matplotlib backend must be set before its imports
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

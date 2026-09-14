@@ -1,0 +1,48 @@
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Test and lint caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Scan output: these contain real hostnames, IPs and software inventories.
+# Never commit them. Use examples/sample-scan.json for demos instead.
+scan_results.json
+unauth_scan_results.json
+threat_analysis.json
+report.txt
+report.docx
+*_report_*.docx
+endpointradar_report.docx
+security_report.xlsx
+*.stdout.log
+*.stderr.log
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Copied into docs/ at build time by .github/workflows/pages.yml
+docs/sample-scan.json
+
+# Local preview helper
+.claude/

@@ -1,0 +1,376 @@
+[
+  {
+    "hostname": "WIN-DEMO-01",
+    "device_id": "10.0.0.51",
+    "target_ip": "10.0.0.51",
+    "risk_score": 9,
+    "risk_level": "MEDIUM",
+    "connection_status": "Local Scan",
+    "last_scan_at": "2026-09-14T10:15:00+00:00",
+    "vulnerabilities": [
+      {
+        "title": "Risky port listening: 445",
+        "severity": "HIGH",
+        "description": "SMB exposed can increase risk of lateral movement and wormable exploits. What this means: Port 445 is used for Windows file sharing (SMB). If it’s open, attackers can sometimes use it to spread malware across the network. Why it matters: Open ports are like open doors on the network. Attackers scan for them to find targets.",
+        "fix": "If file sharing is not needed, disable SMB/file sharing. If needed, restrict it to trusted networks, block it on Public networks, and keep Windows fully updated."
+      },
+      {
+        "title": "Potentially risky service running: LanmanServer",
+        "severity": "HIGH",
+        "description": "SMB Server service. If running, ensure SMB is needed and hardened. What this means: The SMB file-sharing server is running on this device. Why it matters: Unneeded services increase attack surface. If attackers find a weakness, a running service gives them something to target.",
+        "fix": "If you don’t need file sharing, disable it. If needed, restrict sharing, disable SMBv1, and ensure firewall rules limit exposure."
+      },
+      {
+        "title": "Potentially risky service running: LanmanWorkstation",
+        "severity": "MEDIUM",
+        "description": "SMB client service. Typically normal; note for SMB exposure context. What this means: The SMB client component is running (normal for many systems). Why it matters: Unneeded services increase attack surface. If attackers find a weakness, a running service gives them something to target.",
+        "fix": "No action needed unless you are hardening SMB across the environment."
+      },
+      {
+        "title": "Unusually low patch count",
+        "severity": "MEDIUM",
+        "description": "Low HotFix count may indicate missing cumulative updates (or limited visibility). What this means: This device has fewer recorded updates than expected. Why it matters: A low patch count can mean the system is missing updates, or that update inventory is incomplete.",
+        "fix": "Run Windows Update and verify patching. If inventory is managed by IT, confirm reporting is working."
+      }
+    ],
+    "system_info": {
+      "os_name": "Windows",
+      "os_version": "10.0.26200",
+      "os_release": "11",
+      "platform": "Windows-11-10.0.26200-SP0",
+      "hostname": "WIN-DEMO-01",
+      "ip_address": "10.0.0.51"
+    },
+    "antivirus": {
+      "found": true,
+      "products": [
+        "Windows Defender"
+      ],
+      "method": "PowerShell CIM (SecurityCenter2)",
+      "error": null,
+      "status": "ENABLED",
+      "realtime_protection": true,
+      "details": [
+        "AV enabled/real-time status is best-effort; third-party AV reporting varies."
+      ]
+    },
+    "patches": {
+      "found": true,
+      "hotfix_ids": [
+        "KB5054156",
+        "KB5124007",
+        "KB5124008",
+        "KB5126052"
+      ],
+      "raw_table": [
+        "HotFixID  InstalledOn         Description",
+        "--------  -----------         -----------",
+        "KB5126052 10-09-2026 00:00:00 Update",
+        "KB5054156 20-10-2025 00:00:00 Update",
+        "KB5124008 10-09-2026 00:00:00 Security Update",
+        "KB5124007 10-09-2026 00:00:00 Security Update"
+      ],
+      "method": "PowerShell Get-HotFix",
+      "error": null,
+      "total_patches": 4,
+      "most_recent_patch_date": "2026-09-10T00:00:00+05:30",
+      "days_since_last_patch": 4,
+      "patch_warning": "Unusually low number of HotFix entries; the system may be missing updates."
+    },
+    "firewall": {
+      "profiles": {
+        "Domain": {
+          "state": "ON"
+        },
+        "Private": {
+          "state": "ON"
+        },
+        "Public": {
+          "state": "ON"
+        }
+      },
+      "any_off": false,
+      "method": "netsh advfirewall",
+      "error": null,
+      "raw": "Domain Profile Settings: \n----------------------------------------------------------------------\nState                                 ON\nFirewall Policy                       BlockInbound,AllowOutbound\nLocalFirewallRules                    N/A (GPO-store only)\nLocalConSecRules                      N/A (GPO-store only)\nInboundUserNotification               Enable\nRemoteManagement                      Disable\nUnicastResponseToMulticast            Enable\n\nLogging:\nLogAllowedConnections                 Disable\nLogDroppedConnections                 Disable\nFileName                              %systemroot%\\system32\\LogFiles\\Firewall\\pfirewall.log\nMaxFileSize                           4096\n\n\nPrivate Profile Settings: \n----------------------------------------------------------------------\nState                                 ON\nFirewall Policy                       BlockInbound,AllowOutbound\nLocalFirewallRules                    N/A (GPO-store only)\nLocalConSecRules                      N/A (GPO-store only)\nInboundUserNotification               Enable\nRemoteManagement                      Disable\nUnicastResponseToMulticast            Enable\n\nLogging:\nLogAllowedConnections                 Disable\nLogDroppedConnections                 Disable\nFileName                              %systemroot%\\system32\\LogFiles\\Firewall\\pfirewall.log\nMaxFileSize                           4096\n\n\nPublic Profile Settings: \n----------------------------------------------------------------------\nState                                 ON\nFirewall Policy                       BlockInbound,AllowOutbound\nLocalFirewallRules                    N/A (GPO-store only)\nLocalConSecRules                      N/A (GPO-store only)\nInboundUserNotification               Enable\nRemoteManagement                      Disable\nUnicastResponseToMulticast            Enable\n\nLogging:\nLogAllowedConnections                 Disable\nLogDroppedConnections                 Disable\nFileName                              %systemroot%\\system32\\LogFiles\\Firewall\\pfirewall.log\nMaxFileSize                           4096\n\nOk."
+    },
+    "open_ports": {
+      "method": "psutil.net_connections()",
+      "listening_ports": [
+        135,
+        139,
+        445,
+        5040,
+        5357,
+        5985,
+        47001,
+        49664,
+        49665,
+        49666,
+        49667,
+        49668,
+        49669,
+        49670,
+        55133
+      ],
+      "risky_open": [
+        {
+          "port": 445,
+          "severity": "HIGH",
+          "reason": "SMB exposed can increase risk of lateral movement and wormable exploits."
+        }
+      ],
+      "error": null
+    },
+    "services": {
+      "method": "psutil.win_service_iter()",
+      "running": [
+        {
+          "name": "Appinfo",
+          "display_name": "Application Information",
+          "status": "Running"
+        },
+        {
+          "name": "AudioSrv",
+          "display_name": "Windows Audio",
+          "status": "Running"
+        },
+        {
+          "name": "BFE",
+          "display_name": "Base Filtering Engine",
+          "status": "Running"
+        },
+        {
+          "name": "BITS",
+          "display_name": "Background Intelligent Transfer Service",
+          "status": "Running"
+        },
+        {
+          "name": "CryptSvc",
+          "display_name": "Cryptographic Services",
+          "status": "Running"
+        },
+        {
+          "name": "Dhcp",
+          "display_name": "DHCP Client",
+          "status": "Running"
+        },
+        {
+          "name": "Dnscache",
+          "display_name": "DNS Client",
+          "status": "Running"
+        },
+        {
+          "name": "EventLog",
+          "display_name": "Windows Event Log",
+          "status": "Running"
+        },
+        {
+          "name": "LanmanServer",
+          "display_name": "Server",
+          "status": "Running"
+        },
+        {
+          "name": "LanmanWorkstation",
+          "display_name": "Workstation",
+          "status": "Running"
+        },
+        {
+          "name": "mpssvc",
+          "display_name": "Windows Defender Firewall",
+          "status": "Running"
+        },
+        {
+          "name": "Netlogon",
+          "display_name": "Netlogon",
+          "status": "Running"
+        },
+        {
+          "name": "nsi",
+          "display_name": "Network Store Interface Service",
+          "status": "Running"
+        },
+        {
+          "name": "RpcSs",
+          "display_name": "Remote Procedure Call (RPC)",
+          "status": "Running"
+        },
+        {
+          "name": "Schedule",
+          "display_name": "Task Scheduler",
+          "status": "Running"
+        },
+        {
+          "name": "SecurityHealthService",
+          "display_name": "Windows Security Service",
+          "status": "Running"
+        },
+        {
+          "name": "Spooler",
+          "display_name": "Print Spooler",
+          "status": "Running"
+        },
+        {
+          "name": "TermService",
+          "display_name": "Remote Desktop Services",
+          "status": "Running"
+        },
+        {
+          "name": "W32Time",
+          "display_name": "Windows Time",
+          "status": "Running"
+        },
+        {
+          "name": "WinDefend",
+          "display_name": "Microsoft Defender Antivirus Service",
+          "status": "Running"
+        },
+        {
+          "name": "Winmgmt",
+          "display_name": "Windows Management Instrumentation",
+          "status": "Running"
+        },
+        {
+          "name": "wuauserv",
+          "display_name": "Windows Update",
+          "status": "Running"
+        }
+      ],
+      "highlighted": [
+        {
+          "name": "LanmanServer",
+          "severity": "HIGH",
+          "reason": "SMB Server service. If running, ensure SMB is needed and hardened."
+        },
+        {
+          "name": "LanmanWorkstation",
+          "severity": "MEDIUM",
+          "reason": "SMB client service. Typically normal; note for SMB exposure context."
+        }
+      ],
+      "error": null
+    },
+    "third_party_software": {
+      "apps": [
+        {
+          "name": "7-Zip 19.00",
+          "version": "19.00",
+          "publisher": "Igor Pavlov",
+          "install_date": "20220114"
+        },
+        {
+          "name": "Google Chrome",
+          "version": "118.0.5993.89",
+          "publisher": "Google LLC",
+          "install_date": "20231018"
+        },
+        {
+          "name": "Mozilla Firefox 102.0",
+          "version": "102.0",
+          "publisher": "Mozilla",
+          "install_date": "20220701"
+        },
+        {
+          "name": "Notepad++ 8.5.4",
+          "version": "8.5.4",
+          "publisher": "Notepad++ Team",
+          "install_date": "20230612"
+        },
+        {
+          "name": "Python 3.13.2",
+          "version": "3.13.2",
+          "publisher": "Python Software Foundation",
+          "install_date": "20250203"
+        },
+        {
+          "name": "VLC media player",
+          "version": "3.0.16",
+          "publisher": "VideoLAN",
+          "install_date": "20210620"
+        }
+      ],
+      "potentially_outdated": [
+        {
+          "name": "Google Chrome",
+          "version": "118.0.5993.89",
+          "reason": "installed ~700 days ago"
+        },
+        {
+          "name": "Mozilla Firefox 102.0",
+          "version": "102.0",
+          "reason": "installed ~1170 days ago"
+        },
+        {
+          "name": "VLC media player",
+          "version": "3.0.16",
+          "reason": "installed ~1550 days ago"
+        },
+        {
+          "name": "7-Zip 19.00",
+          "version": "19.00",
+          "reason": "installed ~1340 days ago"
+        }
+      ],
+      "error": null,
+      "method": "PowerShell registry query",
+      "risky_apps": [
+        {
+          "name": "Google Chrome",
+          "version": "118.0.5993.89",
+          "risk_level": "HIGH",
+          "reason": "Outdated browser version"
+        }
+      ]
+    },
+    "installed_apps": [
+      {
+        "name": "7-Zip 19.00",
+        "version": "19.00",
+        "publisher": "Igor Pavlov",
+        "install_date": "20220114"
+      },
+      {
+        "name": "Google Chrome",
+        "version": "118.0.5993.89",
+        "publisher": "Google LLC",
+        "install_date": "20231018"
+      },
+      {
+        "name": "Mozilla Firefox 102.0",
+        "version": "102.0",
+        "publisher": "Mozilla",
+        "install_date": "20220701"
+      },
+      {
+        "name": "Notepad++ 8.5.4",
+        "version": "8.5.4",
+        "publisher": "Notepad++ Team",
+        "install_date": "20230612"
+      },
+      {
+        "name": "Python 3.13.2",
+        "version": "3.13.2",
+        "publisher": "Python Software Foundation",
+        "install_date": "20250203"
+      },
+      {
+        "name": "VLC media player",
+        "version": "3.0.16",
+        "publisher": "VideoLAN",
+        "install_date": "20210620"
+      }
+    ],
+    "risky_apps": [
+      {
+        "name": "Google Chrome",
+        "version": "118.0.5993.89",
+        "risk_level": "HIGH",
+        "reason": "Outdated browser version"
+      }
+    ],
+    "device_type": "Windows",
+    "device_type_label": "Windows PC",
+    "scan_supported": true,
+    "device_type_reason": "OS hints report Windows."
+  }
+]

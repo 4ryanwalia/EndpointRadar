@@ -1,0 +1,80 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Test (${{ matrix.os }}, Python ${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install
+        # The GUI extra needs a display, so it is deliberately left out of CI.
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[remote,report,web,dev]"
+
+      - name: Lint
+        run: ruff check src tests
+
+      - name: Test
+        run: pytest -q
+
+      - name: Smoke-test the CLI
+        run: |
+          endpointradar --version
+          endpointradar show -i examples/sample-scan.json --no-color
+          endpointradar threats -i examples/sample-scan.json -f json > /dev/null
+        shell: bash
+
+  scan-self:
+    name: Self-scan on Windows
+    runs-on: windows-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install
+        run: python -m pip install -e .
+
+      # Proves the scanner runs end to end against a real Windows host.
+      # --fail-on never keeps a risky runner image from failing the build.
+      - name: Scan the runner
+        run: endpointradar scan --no-color --fail-on never
+
+      - name: Upload the scan
+        uses: actions/upload-artifact@v4
+        with:
+          name: runner-posture-scan
+          path: scan_results.json
+          if-no-files-found: warn
