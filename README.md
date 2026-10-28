@@ -633,6 +633,7 @@ Good first contributions:
 **If EndpointRadar saved you some time, a ⭐ helps other people find it.**
 
 [Live demo](https://4ryanwalia.github.io/EndpointRadar/) ·
+[BugSnaps report workspace](https://bugsnaps.in/endpointradar) ·
 [Report a bug](https://github.com/4ryanwalia/EndpointRadar/issues) ·
 [Star the repo](https://github.com/4ryanwalia/EndpointRadar)
 
