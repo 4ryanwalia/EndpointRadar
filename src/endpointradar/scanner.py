@@ -1439,6 +1439,13 @@ def run_single_scan() -> dict[str, Any]:
     risk_level = str(assessment.get("risk_level") or "UNKNOWN").upper()
 
     vulns_out: list[dict[str, Any]] = []
+    check_ids = {
+        "Windows Firewall OFF": "windows.firewall.profiles.v1",
+        "Antivirus disabled": "windows.antivirus.enabled.v1",
+        "Real-time protection disabled": "windows.antivirus.realtime.v1",
+        "Secure Boot is disabled": "windows.secure_boot.v1",
+        "System drive BitLocker protection is off": "windows.system_drive_protection.v1",
+    }
     for v in assessment.get("vulnerabilities") or []:
         title = str(v.get("title") or "Finding")
         severity = str(v.get("severity") or "INFO").upper()
@@ -1463,6 +1470,7 @@ def run_single_scan() -> dict[str, Any]:
                 "severity": severity,
                 "description": description,
                 "fix": fix,
+                **({"check_id": check_ids[title]} if title in check_ids else {}),
             }
         )
 
@@ -1484,6 +1492,7 @@ def run_single_scan() -> dict[str, Any]:
         "open_ports": assessment.get("open_ports") or {},
         "services": assessment.get("services") or {},
         "device_protection": assessment.get("device_protection") or {},
+        "posture_checks": assessment.get("posture_checks") or [],
         "third_party_software": software_info,
         "installed_apps": installed_inventory,
         "risky_apps": risky_apps,

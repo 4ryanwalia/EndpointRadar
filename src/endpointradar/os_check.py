@@ -482,6 +482,40 @@ def check_device_protection() -> dict:
     return result
 
 
+def posture_check_evidence(fw: dict, av: dict, protection: dict) -> list[dict]:
+    """Stable, explicit check outcomes; unknown never implies a passing control.
+
+    Only controls with unambiguous scanner outcomes are included. Patch recency,
+    listening ports and service inventory are contextual signals, not proof of
+    update compliance or a remediated security issue.
+    """
+    profiles = fw.get("profiles") or {}
+    states = {name: str((profiles.get(name) or {}).get("state") or "UNKNOWN").upper()
+              for name in ("Domain", "Private", "Public")}
+    if fw.get("error"):
+        firewall = "unknown"
+    elif "OFF" in states.values():
+        firewall = "fail"
+    elif all(state == "ON" for state in states.values()):
+        firewall = "pass"
+    else:
+        firewall = "unknown"
+    checks = [{"id": "windows.firewall.profiles.v1", "status": firewall,
+               "evidence": "Firewall profiles: " + ", ".join(f"{name}={state}" for name, state in states.items())}]
+    av_state = str(av.get("status") or "UNKNOWN").upper() if av.get("found") and not av.get("error") else "UNKNOWN"
+    checks.append({"id": "windows.antivirus.enabled.v1", "status": {"ENABLED": "pass", "DISABLED": "fail"}.get(av_state, "unknown"),
+                   "evidence": f"Antivirus status: {av_state}; Windows Security Center reporting is best-effort."})
+    realtime = av.get("realtime_protection") if av.get("found") and not av.get("error") else None
+    checks.append({"id": "windows.antivirus.realtime.v1", "status": "pass" if realtime is True else "fail" if realtime is False else "unknown",
+                   "evidence": f"Real-time protection: {'enabled' if realtime is True else 'disabled' if realtime is False else 'unknown'}; reported by Windows Defender when available."})
+    for key, check_id, label in (("secure_boot", "windows.secure_boot.v1", "Secure Boot"),
+                                 ("system_drive_encryption", "windows.system_drive_protection.v1", "System drive BitLocker protection")):
+        state = str((protection.get(key) or {}).get("state") or "unknown").lower()
+        checks.append({"id": check_id, "status": {"enabled": "pass", "disabled": "fail"}.get(state, "unknown"),
+                       "evidence": f"{label}: {state if state in {'enabled', 'disabled'} else 'unknown'}."})
+    return checks
+
+
 def vulnerability_check(system_info: dict, av_info: dict, patches_info: dict) -> dict:
     """
     Practical assessment: numeric scoring + local misconfiguration findings.
@@ -729,6 +763,7 @@ def vulnerability_check(system_info: dict, av_info: dict, patches_info: dict) ->
         "open_ports": ports,
         "services": services,
         "device_protection": device_protection,
+        "posture_checks": posture_check_evidence(fw, av_info, device_protection),
     }
 
 
