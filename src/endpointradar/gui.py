@@ -1631,7 +1631,7 @@ class EndpointDashboard(tk.Tk):
 
         self.software_risk_summary_label = tk.Label(
             header,
-            text="Risky Applications: 0",
+            text="Vulnerability assessment: Not verified",
             bg=CARD,
             fg="#FFB74D",
             font=("Segoe UI", 10, "bold"),
@@ -1642,7 +1642,7 @@ class EndpointDashboard(tk.Tk):
 
         self.software_status_label = tk.Label(
             header,
-            text="Third-party Software: Secure (No risky applications found)",
+            text="Third-party Software: Inventory only",
             bg=CARD,
             fg=MUTED,
             font=("Segoe UI", 10),
@@ -1657,7 +1657,7 @@ class EndpointDashboard(tk.Tk):
         risky_panel = tk.Frame(sections, bg=CARD)
         tk.Label(
             risky_panel,
-            text="Risky Applications Detected",
+            text="Software Assessment",
             bg=CARD,
             fg=TEXT,
             font=("Segoe UI", 11, "bold"),
@@ -2165,7 +2165,7 @@ class EndpointDashboard(tk.Tk):
         total_score = sum(scores.values())
         self.component_score_cache = scores
         self.component_contrib_cache = contrib
-        self.pie_click_info.config(text="" if total_score > 0 else "System is secure. No risks detected.")
+        self.pie_click_info.config(text="" if total_score > 0 else "No issues scored in available evidence; checks may be incomplete.")
 
         labels = []
         sizes = []
@@ -2195,7 +2195,7 @@ class EndpointDashboard(tk.Tk):
             self.ax_pie.axis("equal")
             self._pie_wedges = list(zip(wedges, labels, sizes, strict=True))
         else:
-            self.ax_pie.text(0.5, 0.5, "System is secure.\nNo risks detected.", ha="center", va="center", color=TEXT)
+            self.ax_pie.text(0.5, 0.5, "No issues scored.\nChecks may be incomplete.", ha="center", va="center", color=TEXT)
             self._pie_wedges = []
 
         # Bar chart with highest contributor highlighted
@@ -2273,7 +2273,7 @@ class EndpointDashboard(tk.Tk):
                 lines.append(f"{idx}. {name} -> {points} pts ({pct:.1f}%)")
             self.top_drivers_label.config(text="\n".join(lines), fg=TEXT)
         else:
-            self.top_drivers_label.config(text="Top Risk Drivers: System is secure. No risks detected.", fg=MUTED)
+            self.top_drivers_label.config(text="Top Risk Drivers: No issues scored in available evidence; checks may be incomplete.", fg=MUTED)
 
         self._set_text(self.tab_antivirus, self._build_antivirus_text(scan))
         self._set_text(self.tab_firewall, self._build_firewall_text(scan))
@@ -2303,12 +2303,12 @@ class EndpointDashboard(tk.Tk):
             )
         av = scan.get("antivirus") or {}
         av_score = int(risk.compute_component_scores(scan).get("Antivirus", 0))
-        secure_status = "Antivirus: Secure (No risk detected)" if av_score == 0 else "Antivirus: Risk detected"
+        secure_status = "Antivirus: No issue scored; status may be unknown" if av_score == 0 else "Antivirus: Risk detected"
         lines = [
             secure_status,
             f"Status: {av.get('status', 'UNKNOWN')}",
             f"Real-time protection: {'ENABLED' if av.get('realtime_protection') is True else ('DISABLED' if av.get('realtime_protection') is False else 'UNKNOWN')}",
-            f"Products: {', '.join(av.get('products') or []) or 'None detected'}",
+            f"Products: {', '.join(av.get('products') or []) or 'None reported'}",
             "",
             "Risk explanation:",
             "If antivirus is disabled, missing, or real-time protection is off, malware can run with less resistance.",
@@ -2385,13 +2385,12 @@ class EndpointDashboard(tk.Tk):
         dt = patches.get("most_recent_patch_date")
         date_str = dt if isinstance(dt, str) else (dt.strftime("%Y-%m-%d") if dt else "Unknown")
         lines = [
-            f"Last update date: {date_str}",
-            f"Days since update: {patches.get('days_since_last_patch', 'Unknown')}",
-            f"Total patches: {patches.get('total_patches', 0)}",
+            f"Last visible HotFix date: {date_str}",
+            f"Days since visible HotFix: {patches.get('days_since_last_patch', 'Unknown')}",
+            f"Visible HotFix entries: {patches.get('total_patches', 0)}",
             f"Warning: {patches.get('patch_warning') or 'None'}",
             "",
-            "Risk if outdated:",
-            "Systems missing recent patches can be exploited using known vulnerabilities.",
+            "HotFix inventory is incomplete; verify update compliance separately.",
         ]
         return "\n".join(lines)
 
@@ -2432,7 +2431,7 @@ class EndpointDashboard(tk.Tk):
             if hasattr(self, "software_total_label"):
                 self.software_total_label.config(text="Total Applications: Limited Visibility")
             if hasattr(self, "software_risk_summary_label"):
-                self.software_risk_summary_label.config(text="Risky Applications: Authentication Required")
+                self.software_risk_summary_label.config(text="Software assessment: Authentication Required")
             if hasattr(self, "software_status_label"):
                 self.software_status_label.config(
                     text=f"Third-party Software: {scanner.LIMITED_VISIBILITY_NOTE}",
@@ -2440,40 +2439,9 @@ class EndpointDashboard(tk.Tk):
                 )
             return
 
+        # Never substitute this dashboard host's inventory for an imported or remote scan.
         apps = scan.get("installed_apps") or []
-        had_installed_apps_field = "installed_apps" in scan and bool(scan.get("installed_apps"))
-
-        # Backward compatibility: older scan_results.json won't have installed_apps.
-        if not apps:
-            try:
-                from . import installed_apps as installed_apps_module
-
-                apps = installed_apps_module.get_installed_apps()
-            except Exception:
-                apps = []
-            # Persist so JSON output / exports reflect the full inventory.
-            try:
-                scan["installed_apps"] = apps
-                if not had_installed_apps_field:
-                    scanner.save_scan_results(self.results)
-            except Exception:
-                pass
-
-        analysis = risk.analyze_software_risk(apps)
-        risky_apps = risk.filter_risky_apps(analysis)
-        third_party = scan.setdefault("third_party_software", {})
-        needs_save = False
-        if scan.get("risky_apps") != risky_apps:
-            scan["risky_apps"] = risky_apps
-            needs_save = True
-        if third_party.get("risky_apps") != risky_apps:
-            third_party["risky_apps"] = risky_apps
-            needs_save = True
-        if needs_save:
-            try:
-                scanner.save_scan_results(self.results)
-            except Exception:
-                pass
+        risky_apps: list[dict[str, str]] = []
 
         if not hasattr(self, "software_tree") or self.software_tree is None:
             return
@@ -2491,11 +2459,11 @@ class EndpointDashboard(tk.Tk):
                 pass
 
         self.software_total_label.config(text=f"Total Applications: {len(apps)}")
-        self.software_risk_summary_label.config(text=f"Risky Applications: {len(risky_apps)}")
+        self.software_risk_summary_label.config(text="Vulnerability assessment: Not verified")
         if risky_apps:
             self.software_status_label.config(text="Third-party Software: Risk detected", fg="#FFB74D")
         else:
-            self.software_status_label.config(text="Third-party Software: Secure (No risky applications found)", fg=MUTED)
+            self.software_status_label.config(text="Third-party Software: Inventory only", fg=MUTED)
 
         severity_order = {"HIGH": 0, "MEDIUM": 1, "LOW": 2}
         if risky_apps:
@@ -2525,10 +2493,10 @@ class EndpointDashboard(tk.Tk):
                 "",
                 tk.END,
                 values=(
-                    "No risky applications detected",
+                    "Not assessed",
                     "-",
-                    "LOW",
-                    "Current heuristic checks did not flag any installed software.",
+                    "UNKNOWN",
+                    "Inventory has not been checked against vulnerability advisories.",
                 ),
                 tags=("LOW",),
             )
@@ -2555,7 +2523,7 @@ class EndpointDashboard(tk.Tk):
         risky_apps = risk.filter_risky_apps(risk.analyze_software_risk(apps))
         if not apps:
             return "Total Applications: 0"
-        lines = [f"Total Applications: {len(apps)}", f"Risky Applications: {len(risky_apps)}", ""]
+        lines = [f"Total Applications: {len(apps)}", "Vulnerability assessment: Not verified", ""]
         if risky_apps:
             lines.append("Risky Applications Detected:")
             for item in risky_apps:

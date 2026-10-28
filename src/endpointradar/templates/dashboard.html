@@ -704,7 +704,7 @@
       const labels = entries.length ? entries.map(([label]) => label) : ["No risk points recorded"];
       const values = entries.length ? entries.map(([, value]) => Number(value || 0)) : [100];
       const colors = entries.length
-        ? ["#ff6b6b", "#ff9f43", "#ffd166", "#4dd0e1", "#5eead4", "#95a4ff"].slice(0, labels.length)
+        ? ["#ff6b6b", "#ff9f43", "#ffd166", "#4dd0e1", "#5eead4", "#95a4ff", "#c39aff"].slice(0, labels.length)
         : ["#43d17c"];
 
       destroyChart(state.charts.risk);

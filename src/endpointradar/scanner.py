@@ -1352,7 +1352,7 @@ def fetch_local_processes(limit: int = 50) -> list[dict[str, Any]]:
 def get_third_party_software() -> dict[str, Any]:
     """
     Basic third-party software inventory using PowerShell uninstall registry keys.
-    Includes a simple "potentially outdated" signal using InstallDate age and missing version.
+    Install dates and versions do not establish whether software is vulnerable or current.
     """
     result: dict[str, Any] = {"apps": [], "potentially_outdated": [], "error": None, "method": "PowerShell registry query"}
     ps_cmd = (
@@ -1379,7 +1379,6 @@ def get_third_party_software() -> dict[str, Any]:
     data_lines = [ln for ln in lines if not re.fullmatch(r"-{3,}(\s+-{3,})*", ln.strip()) and "DisplayName" not in ln]
 
     apps: list[dict[str, Any]] = []
-    now = datetime.now(timezone.utc).astimezone()
     for ln in data_lines:
         parts = re.split(r"\s{2,}", ln.strip())
         if not parts:
@@ -1399,31 +1398,10 @@ def get_third_party_software() -> dict[str, Any]:
 
     result["apps"] = apps[:120]  # keep UI manageable
 
-    potentially_outdated: list[dict[str, Any]] = []
-    for app in result["apps"]:
-        reason_parts: list[str] = []
-        if app["version"] == "Unknown":
-            reason_parts.append("version not available")
-
-        date_raw = str(app.get("install_date") or "")
-        if re.fullmatch(r"\d{8}", date_raw):
-            try:
-                dt = datetime.strptime(date_raw, "%Y%m%d").replace(tzinfo=now.tzinfo)
-                age_days = (now - dt).days
-                if age_days > 365 * 3:
-                    reason_parts.append(f"installed ~{age_days} days ago")
-            except Exception:
-                pass
-
-        if reason_parts:
-            potentially_outdated.append(
-                {
-                    "name": app["name"],
-                    "version": app["version"],
-                    "reason": ", ".join(reason_parts),
-                }
-            )
-    result["potentially_outdated"] = potentially_outdated[:40]
+    # Preserve this legacy key without interpreting installation age or missing
+    # versions as evidence that an application is outdated.
+    result["potentially_outdated"] = []
+    result["assessment_note"] = "Inventory only; application security status has not been checked against advisories."
     return result
 
 
@@ -1496,6 +1474,7 @@ def run_single_scan() -> dict[str, Any]:
         "risk_level": risk_level,
         "connection_status": "Local Scan",
         "last_scan_at": datetime.now().astimezone().isoformat(),
+        "warnings": assessment.get("warnings") or [],
         "vulnerabilities": vulns_out,
         # Extra structured details for dashboard component breakdown.
         "system_info": system_info,
@@ -1504,6 +1483,7 @@ def run_single_scan() -> dict[str, Any]:
         "firewall": assessment.get("firewall") or {},
         "open_ports": assessment.get("open_ports") or {},
         "services": assessment.get("services") or {},
+        "device_protection": assessment.get("device_protection") or {},
         "third_party_software": software_info,
         "installed_apps": installed_inventory,
         "risky_apps": risky_apps,

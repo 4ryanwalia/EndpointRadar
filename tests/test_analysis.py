@@ -80,11 +80,39 @@ def test_unknown_risk_level_falls_back_to_low() -> None:
     assert counts["LOW"] == 1
 
 
-def test_outdated_browser_is_flagged_high() -> None:
-    analysis = risk.analyze_software_risk(
-        [{"name": "Google Chrome", "version": "50.0.1", "publisher": "Google LLC"}]
+def test_inventory_does_not_claim_software_risk_without_advisories() -> None:
+    apps = [
+        {"name": "Google Chrome", "version": "50.0.1"},
+        {"name": "Java", "version": "99"},
+        {"name": "Folder Tool", "version": "Unknown"},
+    ]
+    analysis = risk.analyze_software_risk(apps)
+    assert [item["risk_level"] for item in analysis] == ["UNKNOWN"] * 3
+    assert "not been verified" in analysis[0]["reason"]
+    assert "not available" in analysis[2]["reason"]
+    assert risk.filter_risky_apps(analysis) == []
+
+
+def test_incomplete_inventory_does_not_add_risk_or_generate_threats() -> None:
+    scan = {
+        "antivirus": {"found": False, "status": "UNKNOWN", "error": "unavailable"},
+        "patches": {"days_since_last_patch": 400, "total_patches": 0, "patch_warning": "unavailable"},
+        "risky_apps": [{"name": "Java", "risk_level": "HIGH"}],
+    }
+    scores = risk.compute_component_scores(scan)
+    assert scores["Antivirus"] == scores["Patching"] == scores["Third-party Software"] == 0
+    assert not {"Antivirus", "OS / Patching", "Third-party Software"}.intersection(
+        threat["category"] for threat in threats.generate_threats(scan)
     )
-    assert any(str(item.get("risk_level", "")).upper() == "HIGH" for item in analysis)
+    assert "secure" not in risk.summarize_risk_reason(scan).lower()
+
+
+def test_device_protection_scores_only_known_disabled_states() -> None:
+    scan = {"device_protection": {"secure_boot": {"state": "disabled"}, "system_drive_encryption": {"state": "unknown"}}}
+    assert risk.compute_component_scores(scan)["Device Protection"] == 2
+    scan["device_protection"]["system_drive_encryption"]["state"] = "disabled"
+    assert risk.compute_component_scores(scan)["Device Protection"] == 4
+    assert risk.compute_component_scores({})["Device Protection"] == 0
 
 
 # --------------------------------------------------------------------------

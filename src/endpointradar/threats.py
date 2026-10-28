@@ -98,10 +98,6 @@ def generate_threats(scan: dict[str, Any], max_threats: int = 10) -> list[dict[s
     av_status = str(av.get("status") or "UNKNOWN").upper()
     rtp = av.get("realtime_protection")
 
-    patches = scan.get("patches") or {}
-    days = patches.get("days_since_last_patch")
-    total_patches = int(patches.get("total_patches") or 0)
-
     ports = scan.get("open_ports") or {}
     risky_open = ports.get("risky_open") or []
     risky_ports = {int(item.get("port")) for item in risky_open if isinstance(item.get("port"), int) or str(item.get("port")).isdigit()}
@@ -135,7 +131,7 @@ def generate_threats(scan: dict[str, Any], max_threats: int = 10) -> list[dict[s
             )
 
     # --- Antivirus threats (1-2) ---
-    if not limited_visibility and not av_found:
+    if not limited_visibility and not av_found and av_status == "NOT FOUND" and not av.get("error"):
         _add_threat(
             threats,
             category="Antivirus",
@@ -145,7 +141,7 @@ def generate_threats(scan: dict[str, Any], max_threats: int = 10) -> list[dict[s
             description="No antivirus product was detected (or access is restricted).",
             recommendation="Install a reputable antivirus and ensure real-time protection is enabled.",
         )
-    elif not limited_visibility:
+    elif not limited_visibility and av_found and not av.get("error"):
         # Antivirus disabled
         if av_status == "DISABLED":
             _add_threat(
@@ -169,50 +165,7 @@ def generate_threats(scan: dict[str, Any], max_threats: int = 10) -> list[dict[s
                 recommendation="Turn on real-time protection and verify scheduled scan policies are enabled.",
             )
 
-    # --- OS / Patching threats (1-2) ---
-    if not limited_visibility and days is not None:
-        if isinstance(days, int) and days > 30:
-            _add_threat(
-                threats,
-                category="OS / Patching",
-                title="Known vulnerabilities may be present",
-                likelihood=4,
-                impact=4,
-                description="Most recent patch is older than 30 days, increasing exposure to known vulnerabilities.",
-                recommendation="Run Windows Update and ensure the latest cumulative/security updates are installed.",
-            )
-        elif isinstance(days, int) and days > 14:
-            _add_threat(
-                threats,
-                category="OS / Patching",
-                title="Patching behind schedule",
-                likelihood=3,
-                impact=3,
-                description="Patch recency is older than ideal; some security updates may be missing.",
-                recommendation="Update Windows and confirm update reporting/automation for ongoing patch compliance.",
-            )
-
-    if not limited_visibility and total_patches == 0:
-        _add_threat(
-            threats,
-            category="OS / Patching",
-            title="Patch inventory may be incomplete",
-            likelihood=3,
-            impact=3,
-            description="HotFix inventory appears empty; the device may be missing updates or update reporting is blocked.",
-            recommendation="Verify Windows Update status and re-check hotfix inventory after updates are applied.",
-        )
-    elif not limited_visibility and total_patches < 15:
-        # Low patch count: medium risk
-        _add_threat(
-            threats,
-            category="OS / Patching",
-            title="Potential missing cumulative updates",
-            likelihood=3,
-            impact=2,
-            description="Unusually low number of HotFix entries suggests patching may not be complete.",
-            recommendation="Confirm Windows Update compliance and install missing cumulative updates.",
-        )
+    # A partial HotFix list cannot establish that updates are missing.
 
     # --- Open Ports threats (1-2) ---
     if 445 in risky_ports:
@@ -272,37 +225,7 @@ def generate_threats(scan: dict[str, Any], max_threats: int = 10) -> list[dict[s
             recommendation="Disable Remote Desktop if not required. If required, restrict access and enable NLA/MFA.",
         )
 
-    # --- Third-party software threats (1-2) ---
-    risky_apps = scan.get("risky_apps")
-    if not isinstance(risky_apps, list):
-        risky_apps = risk.filter_risky_apps(risk.analyze_software_risk(scan.get("installed_apps") or []))
-
-    high_risk_apps = [item for item in risky_apps if str(item.get("risk_level") or item.get("risk") or "").upper() == "HIGH"]
-    medium_risk_apps = [item for item in risky_apps if str(item.get("risk_level") or item.get("risk") or "").upper() == "MEDIUM"]
-
-    if not limited_visibility and high_risk_apps:
-        sample_names = ", ".join(str(item.get("name") or "") for item in high_risk_apps[:3] if str(item.get("name") or "").strip())
-        detail = f" Examples: {sample_names}." if sample_names else ""
-        _add_threat(
-            threats,
-            category="Third-party Software",
-            title="Outdated software exploitation",
-            likelihood=4,
-            impact=4,
-            description="Outdated or deprecated third-party applications may contain known vulnerabilities." + detail,
-            recommendation="Update all outdated software to the latest supported versions and remove deprecated applications.",
-        )
-
-    if not limited_visibility and medium_risk_apps:
-        _add_threat(
-            threats,
-            category="Third-party Software",
-            title="Software inventory gaps reduce vulnerability visibility",
-            likelihood=3,
-            impact=3,
-            description="Some installed applications do not expose usable version data, making patch verification difficult.",
-            recommendation="Capture software versions consistently and review unversioned applications for manual validation or replacement.",
-        )
+    # Historical software heuristics are not evidence of an exploitable version.
 
     # Reduce threats to max_threats (but keep variety)
     if len(threats) > max_threats:

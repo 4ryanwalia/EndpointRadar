@@ -7,7 +7,6 @@ and the web API all score identically.
 
 from __future__ import annotations
 
-import re
 from typing import Any
 
 COMPONENTS = [
@@ -17,6 +16,7 @@ COMPONENTS = [
     "Antivirus",
     "Services",
     "Third-party Software",
+    "Device Protection",
 ]
 
 COMPONENT_COLORS = {
@@ -26,6 +26,7 @@ COMPONENT_COLORS = {
     "Antivirus": "#1E88E5",
     "Services": "#8E24AA",
     "Third-party Software": "#26A69A",
+    "Device Protection": "#7C83FD",
 }
 
 
@@ -34,67 +35,19 @@ def is_limited_visibility_scan(scan: dict[str, Any] | None) -> bool:
     return bool(data.get("limited_visibility")) or str(data.get("scan_mode") or "").strip().lower() == "unauthenticated"
 
 
-def _parse_version_major(version: Any) -> int | None:
-    text = str(version or "").strip()
-    if not text or text.upper() == "N/A":
-        return None
-    match = re.search(r"(\d+)", text)
-    if not match:
-        return None
-    try:
-        return int(match.group(1))
-    except Exception:
-        return None
-
-
 def analyze_software_risk(apps: list[dict[str, Any]] | None) -> list[dict[str, str]]:
-    """
-    Applies simple software risk heuristics to installed applications.
-    Returns one assessment row per application with a risk level and reason.
-    """
+    """Describe inventory visibility; a name or version alone is not a vulnerability assessment."""
     analysis: list[dict[str, str]] = []
     for app in apps or []:
         name = str(app.get("name") or "").strip()
         if not name:
             continue
-
-        version = str(app.get("version") or "N/A").strip() or "N/A"
-        lower_name = name.lower()
-        reasons: list[str] = []
-        rank = 0  # 0=LOW, 1=MEDIUM, 2=HIGH
-
-        if version.upper() == "N/A":
-            rank = max(rank, 1)
-            reasons.append("Version not available, cannot verify security status")
-
-        if any(term in lower_name for term in ("java", "flash", "old")):
-            rank = max(rank, 2)
-            reasons.append("Known high-risk or deprecated software")
-
-        if "chrome" in lower_name or "edge" in lower_name:
-            major = _parse_version_major(version)
-            if major is not None and major < 120:
-                rank = max(rank, 2)
-                reasons.append("Outdated browser version")
-
-        if rank >= 2:
-            risk_level = "HIGH"
-        elif rank == 1:
-            risk_level = "MEDIUM"
-        else:
-            risk_level = "LOW"
-            reasons.append("No immediate software risk heuristics matched")
-
-        analysis.append(
-            {
-                "name": name,
-                "version": version,
-                "risk_level": risk_level,
-                "reason": "; ".join(reasons),
-            }
-        )
+        version = str(app.get("version") or "Unknown").strip() or "Unknown"
+        missing = version.upper() in {"N/A", "UNKNOWN", "NONE"}
+        reason = ("Version not available; security status could not be verified" if missing
+                  else "Inventory only; security status has not been verified against advisories")
+        analysis.append({"name": name, "version": version, "risk_level": "UNKNOWN", "reason": reason})
     return analysis
-
 
 def filter_risky_apps(analysis: list[dict[str, Any]] | None) -> list[dict[str, str]]:
     """
@@ -151,14 +104,15 @@ def compute_component_scores(scan: dict[str, Any]) -> dict[str, int]:
         return scores
 
     av = scan.get("antivirus") or {}
-    if not av.get("found"):
-        scores["Antivirus"] += 5
-    else:
-        av_status = str(av.get("status") or "UNKNOWN").upper()
-        if av_status == "DISABLED":
-            scores["Antivirus"] += 4
-        if av.get("realtime_protection") is False:
-            scores["Antivirus"] += 3
+    av_status = str(av.get("status") or "UNKNOWN").upper()
+    if not av.get("error"):
+        if not av.get("found") and av_status == "NOT FOUND":
+            scores["Antivirus"] += 5
+        elif av.get("found"):
+            if av_status == "DISABLED":
+                scores["Antivirus"] += 4
+            if av.get("realtime_protection") is False:
+                scores["Antivirus"] += 3
 
     fw = scan.get("firewall") or {}
     for profile in ("Domain", "Private", "Public"):
@@ -171,34 +125,20 @@ def compute_component_scores(scan: dict[str, Any]) -> dict[str, int]:
     for item in risky:
         scores["SMB / Open Ports"] += _severity_points(item.get("severity"), high=3, medium=2, low=1)
 
-    patches = scan.get("patches") or {}
-    days = patches.get("days_since_last_patch")
-    if isinstance(days, int) and days > 30:
-        scores["Patching"] += 4
-    elif isinstance(days, int) and days > 14:
-        scores["Patching"] += 2
-
-    total_patches = int(patches.get("total_patches") or 0)
-    patch_warning = str(patches.get("patch_warning") or "").strip()
-    if total_patches == 0:
-        scores["Patching"] += 3
-    elif patch_warning:
-        scores["Patching"] += 2
+    # A HotFix inventory is partial and neither age nor count establishes patch compliance.
 
     services = scan.get("services") or {}
     highlighted = services.get("highlighted") or []
     for item in highlighted:
         scores["Services"] += _severity_points(item.get("severity"), high=2, medium=1, low=1)
 
-    risky_apps = scan.get("risky_apps")
-    if not isinstance(risky_apps, list):
-        risky_apps = filter_risky_apps(analyze_software_risk(scan.get("installed_apps") or []))
+    protection = scan.get("device_protection") or {}
+    for name in ("secure_boot", "system_drive_encryption"):
+        if str((protection.get(name) or {}).get("state") or "").lower() == "disabled":
+            scores["Device Protection"] += 2
 
-    high_risk_count = sum(1 for item in risky_apps if str(item.get("risk_level") or item.get("risk") or "").upper() == "HIGH")
-    medium_risk_count = sum(
-        1 for item in risky_apps if str(item.get("risk_level") or item.get("risk") or "").upper() == "MEDIUM"
-    )
-    scores["Third-party Software"] += (high_risk_count * 2) + medium_risk_count
+    # Historical risky_apps can contain stale heuristics; inventory alone cannot
+    # establish whether installed software has a known vulnerability.
 
     for k in scores:
         scores[k] = _clamp(scores[k])
@@ -217,7 +157,7 @@ def summarize_risk_reason(scan: dict[str, Any]) -> str:
     if sum(scores.values()) <= 0:
         if is_limited_visibility_scan(scan):
             return "Limited attacker-view scan found no exposed monitored services."
-        return "System is secure. No risks detected."
+        return "No scored issues identified in the available evidence; some checks may be incomplete."
 
     level = str(scan.get("risk_level") or "UNKNOWN").upper()
     if is_limited_visibility_scan(scan):

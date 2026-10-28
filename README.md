@@ -7,7 +7,7 @@
 **Agentless Windows endpoint security posture scanner.**
 
 Find out how exposed a Windows machine is — antivirus, firewall, patching, open ports,
-running services and installed software — scored, explained in plain English, and mapped to NIST CSF 2.0.
+running services and installed software. It scores selected observed issues and explains its findings in plain English.
 
 [![CI](https://github.com/4ryanwalia/EndpointRadar/actions/workflows/ci.yml/badge.svg)](https://github.com/4ryanwalia/EndpointRadar/actions/workflows/ci.yml)
 [![Deploy site](https://github.com/4ryanwalia/EndpointRadar/actions/workflows/pages.yml/badge.svg)](https://github.com/4ryanwalia/EndpointRadar/actions/workflows/pages.yml)
@@ -29,17 +29,14 @@ PS C:\> endpointradar scan
   Risk level is MEDIUM mainly due to: Risky port listening: 445,
   Potentially risky service running: LanmanServer, LanmanWorkstation.
 
-  Top risk drivers
-    SMB / Open Ports         3 pts   30.0%  ######
-    Services                 3 pts   30.0%  ######
-    Patching                 2 pts   20.0%  ####
-
   Findings (4)
     HIGH     Risky port listening: 445
     HIGH     Potentially risky service running: LanmanServer
     MEDIUM   Potentially risky service running: LanmanWorkstation
     MEDIUM   Unusually low patch count
 ```
+
+This historical sample illustrates the output format; stored results and scores are not automatically rescanned or updated when scoring rules change.
 
 ---
 
@@ -78,11 +75,10 @@ Basic endpoint hygiene questions are surprisingly hard to answer across even a h
 - Is Defender actually running, with real-time protection on — or just installed?
 - Is the firewall off on *one* profile, which is all an attacker needs?
 - Is SMB (445) listening on a machine that has no business sharing files?
-- When was this box genuinely last patched?
-- Which of the installed applications are old enough to be a liability?
+- What HotFix entries and installed applications are visible for further review?
 
-EndpointRadar answers those questions with **one command**, produces a **number you can track over
-time**, and explains every finding in language you can paste into a ticket.
+EndpointRadar collects point-in-time evidence with **one command**, provides a risk score for selected findings,
+and explains findings for review. The inventory alone does not prove patch compliance or software vulnerability status.
 
 ## What it is — and what it is not
 
@@ -147,7 +143,7 @@ results are directly comparable.
 ### 1. Local — the deep, authenticated view
 
 Runs every check against the machine you are on. The richest view available: antivirus state,
-firewall profiles, hotfix history, listening ports, running services, and the full installed-software
+firewall profiles, visible hotfix entries, listening ports, running services, and installed-software
 inventory read from the registry.
 
 ```powershell
@@ -382,17 +378,24 @@ thing lives in [`risk.py`](src/endpointradar/risk.py) and
 | `10–15` | HIGH |
 | `16+` | CRITICAL |
 
-**Component scores** break that total down across six areas, each clamped to 0–100, then converted
-into percentage contributions so you can see *what is actually driving* the number:
+**Component scores** are a separate breakdown of observed evidence, with each area clamped to
+0–100. They need not add up to the overall score. A zero score means no issue was scored in that
+area, not that the control is verified or the device is secure.
 
-| Component | Points added for |
+| Component | Evidence considered |
 | --- | --- |
-| **Antivirus** | No AV found `+5` · AV disabled `+4` · real-time protection off `+3` |
-| **Firewall** | Each profile (Domain / Private / Public) that is OFF `+5` |
-| **Patching** | Last patch > 30 days `+4` · > 14 days `+2` · zero hotfixes visible `+3` · patch warning `+2` |
-| **SMB / Open Ports** | Each risky listening port, weighted by severity `+1…3` |
-| **Services** | Each highlighted risky service, weighted by severity `+1…2` |
-| **Third-party Software** | Each high-risk app `+2` · each medium-risk app `+1` |
+| **Antivirus** | Confirmed not found, disabled, or real-time protection off; collection errors are unknown |
+| **Firewall** | Profiles explicitly reported OFF |
+| **Patching** | HotFix inventory is partial; no points are assigned based on its count or age |
+| **SMB / Open Ports** | Selected listening or reachable ports, depending on scan mode; listening does not prove network reachability |
+| **Services** | Highlighted running services |
+| **Third-party Software** | Inventory only; software versions are not checked against advisories and add no score |
+| **Device Protection** | Secure Boot or system-drive BitLocker protection explicitly disabled; 2 points each |
+
+Verify update compliance in Windows Update or your management console. A small or old HotFix list is
+not proof of missing updates. Software inventory and install dates do not establish vulnerability or
+support status; check vendor advisories. Older saved scans can contain findings generated by earlier
+heuristics and should be rescanned before relying on their results.
 
 Unauthenticated (limited-visibility) records are scored **only** on port evidence. A credential-free
 result will never claim a machine has no antivirus — it reports that it could not tell.
@@ -420,17 +423,8 @@ Categories map to NIST CSF 2.0 functions:
 endpointradar threats -v
 ```
 
-```
-  Threat analysis - WIN-DEMO-01 (5 threats)
-
-RISK   SCORE CSF     CATEGORY             THREAT
------- ----- ------- -------------------- ---------------------------------------
-MEDIUM 6     Protect OS / Patching        Potential missing cumulative updates
-HIGH   16    Protect Open Ports           SMB exploitation risk (Port 445)
-MEDIUM 12    Protect Services             SMB server service exposure
-HIGH   16    Protect Third-party Software Outdated software exploitation
-MEDIUM 9     Protect Third-party Software Software inventory gaps
-```
+Threats are derived from selected evidence, not a guarantee of exploitability. HotFix age/count and
+software inventory alone do not create a patch or software-exploitation threat.
 
 ## Scan record format
 
@@ -625,7 +619,7 @@ Good first contributions:
 
 - Add a port to the exposure map in `scanner.py`
 - Add a risky-service signature in `os_check.py`
-- Improve software-version heuristics in `risk.py`
+- Add a maintained, evidence-backed software advisory source
 - Add a MAC OUI prefix to `KNOWN_OUI_VENDORS`
 
 ## License

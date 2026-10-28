@@ -173,7 +173,7 @@ def check_antivirus() -> dict:
         "method": None,
         "error": None,
         # Real-world-ish validation signals (best effort):
-        "status": "NOT FOUND",  # ENABLED / DISABLED / NOT FOUND / UNKNOWN
+        "status": "UNKNOWN",  # ENABLED / DISABLED / UNKNOWN
         "realtime_protection": None,  # True/False/None
         "details": [],
     }
@@ -199,9 +199,11 @@ def check_antivirus() -> dict:
         for line in out_mp.splitlines():
             line = line.strip()
             if line.lower().startswith("antivirusenabled="):
-                defender_av_enabled = line.split("=", 1)[1].strip().lower() == "true"
+                value = line.split("=", 1)[1].strip().lower()
+                defender_av_enabled = {"true": True, "false": False}.get(value)
             if line.lower().startswith("realtimeprotectionenabled="):
-                defender_rtp = line.split("=", 1)[1].strip().lower() == "true"
+                value = line.split("=", 1)[1].strip().lower()
+                defender_rtp = {"true": True, "false": False}.get(value)
 
     # Preferred: PowerShell CIM query (WMI SecurityCenter2 namespace).
     ps_cmd = (
@@ -251,8 +253,10 @@ def check_antivirus() -> dict:
                 if enabled_flags:
                     enabled_guess = any(enabled_flags)
 
-            # Prefer Defender-specific status if we got it.
-            if defender_av_enabled is not None:
+            # Defender may be passive when another antivirus protects the machine.
+            # Its own status must not be used as the status of other products.
+            defender_only = all("defender" in product.lower() for product in products)
+            if defender_only and defender_av_enabled is not None:
                 result["status"] = "ENABLED" if defender_av_enabled else "DISABLED"
             elif enabled_guess is True:
                 result["status"] = "ENABLED"
@@ -261,7 +265,7 @@ def check_antivirus() -> dict:
             else:
                 result["status"] = "UNKNOWN"
 
-            if defender_rtp is not None:
+            if defender_only and defender_rtp is not None:
                 result["realtime_protection"] = defender_rtp
             result["details"].append("AV enabled/real-time status is best-effort; third-party AV reporting varies.")
             return result
@@ -309,7 +313,7 @@ def check_antivirus() -> dict:
             return result
 
     combined_err = err or err2 or "No antivirus products detected (or access restricted)."
-    result.update({"error": combined_err, "method": "PowerShell/WMIC", "status": "NOT FOUND"})
+    result.update({"error": combined_err, "method": "PowerShell/WMIC", "status": "UNKNOWN"})
     return result
 
 
@@ -392,13 +396,11 @@ def check_patches() -> dict:
     patch_warnings: list[str] = []
     if result["total_patches"] == 0:
         patch_warnings.append("No patches were detected via HotFix listing; update visibility may be limited.")
-    elif result["total_patches"] < 15:
-        patch_warnings.append("Unusually low number of HotFix entries; the system may be missing updates.")
 
     if result["days_since_last_patch"] is None:
         patch_warnings.append("Could not determine most recent patch date from output.")
     elif result["days_since_last_patch"] > 30:
-        patch_warnings.append("No updates detected in the last 30 days.")
+        patch_warnings.append("No recent HotFix entries found; verify update compliance separately.")
 
     # If we have multiple warnings, we aggregate them into a single summary string.
     result["patch_warning"] = "; ".join(patch_warnings) if patch_warnings else None
@@ -454,6 +456,32 @@ def os_security_validation(system_info: dict) -> dict:
     return {"baseline_ok": baseline_ok, "baseline": baseline, "build": build, "findings": findings}
 
 
+def check_device_protection() -> dict:
+    """Read Secure Boot and OS-volume BitLocker protection; unavailable is not off.
+
+    Commands emit only a strict boolean; failures and ambiguous output remain unknown.
+    The results do not establish device compliance.
+    """
+    checks = {
+        "secure_boot": "Confirm-SecureBootUEFI -ErrorAction Stop",
+        "system_drive_encryption": (
+            "$v = Get-BitLockerVolume -MountPoint $env:SystemDrive -ErrorAction Stop; "
+            "if ($null -eq $v) { throw 'OS volume not returned' }; "
+            "$state = [string]$v.ProtectionStatus; "
+            "if ($state -eq 'On') { 'True' } elseif ($state -eq 'Off') { 'False' } else { 'Unknown' }"
+        ),
+    }
+    result = {}
+    for name, command in checks.items():
+        code, output, _error = _run_command(
+            ["powershell", "-NoProfile", "-NonInteractive", "-Command", command], timeout_s=20
+        )
+        value = output.strip().lower()
+        state = "enabled" if code == 0 and value == "true" else "disabled" if code == 0 and value == "false" else "unknown"
+        result[name] = {"state": state}
+    return result
+
+
 def vulnerability_check(system_info: dict, av_info: dict, patches_info: dict) -> dict:
     """
     Practical assessment: numeric scoring + local misconfiguration findings.
@@ -491,6 +519,25 @@ def vulnerability_check(system_info: dict, av_info: dict, patches_info: dict) ->
     fw = check_firewall_status()
     ports = detect_open_ports()
     services = check_running_services()
+    device_protection = check_device_protection()
+
+    if device_protection["secure_boot"]["state"] == "disabled":
+        add_finding(
+            "MEDIUM", "Secure Boot is disabled", "Windows reported Secure Boot is disabled.", 2,
+            "The device is not using Secure Boot to verify boot components.",
+            "Secure Boot helps protect the startup process from untrusted boot software.",
+            "Check firmware compatibility and organizational policy before enabling Secure Boot in UEFI settings.",
+        )
+    if device_protection["system_drive_encryption"]["state"] == "disabled":
+        add_finding(
+            "MEDIUM", "System drive BitLocker protection is off", "Windows reported BitLocker protection is off for the system drive.", 2,
+            "BitLocker protection is off; the drive may be unencrypted or protection may be suspended.",
+            "Disk protection can reduce exposure of data if a device is lost or stolen.",
+            "Check the system drive's encryption and protection status in Windows and follow your organization's recovery-key policy.",
+        )
+    for name, result in device_protection.items():
+        if result["state"] == "unknown":
+            warnings.append(f"Could not determine {name.replace('_', ' ')} status.")
 
     # 1) Firewall OFF → +5 (HIGH)
     if fw.get("error"):
@@ -583,20 +630,9 @@ def vulnerability_check(system_info: dict, av_info: dict, patches_info: dict) ->
                 fix,
             )
 
-    # 4) Patch-based vulnerability logic
-    # - Outdated patches (>30 days) → +4
-    # - Low patch count → warning (no extra points unless extremely low/zero)
+    # An unavailable SecurityCenter inventory does not establish absence of AV.
     if not av_info.get("found"):
-        warnings.append("No antivirus detected.")
-        add_finding(
-            "HIGH",
-            "Antivirus not found",
-            "No antivirus product detected via SecurityCenter2.",
-            5,
-            "No active antivirus product was detected on this system.",
-            "Without antivirus, malware is more likely to run undetected and spread.",
-            "Install a reputable antivirus product and confirm real-time protection is enabled.",
-        )
+        warnings.append("Unable to verify antivirus inventory; check protection in Windows Security or your endpoint console.")
     else:
         av_status = (av_info.get("status") or "UNKNOWN").upper()
         if av_status == "DISABLED":
@@ -630,42 +666,16 @@ def vulnerability_check(system_info: dict, av_info: dict, patches_info: dict) ->
     if days_since is None:
         warnings.append("Patch recency unknown.")
     elif days_since > 30:
-        warnings.append("No updates detected in the last 30 days.")
+        warnings.append("No recent HotFix entries found; verify update compliance separately.")
         add_finding(
-            "HIGH",
-            "Outdated patching",
-            f"Most recent patch appears {days_since} days old (> 30 days). System may be vulnerable due to outdated patching.",
-            4,
-            "Your computer may be missing recent security fixes.",
-            "Attackers often use known bugs that have already been patched. If you are behind on updates, you are easier to exploit.",
-            "Run Windows Update and install the latest updates. Consider enabling automatic updates.",
+            "INFO", "Review update status", f"The latest visible HotFix entry is {days_since} days old; Get-HotFix is not a complete update inventory.",
+            0, "This check cannot determine update compliance.", "Update reporting may omit updates installed through other mechanisms.",
+            "Verify update compliance in Windows Update or your organization's management console.",
         )
 
     total_patches = int(patches_info.get("total_patches") or 0)
     if total_patches == 0:
-        warnings.append("No patches detected by hotfix inventory.")
-        add_finding(
-            "HIGH",
-            "Patch inventory empty",
-            "No HotFix entries detected. System may be missing updates or inventory visibility is restricted.",
-            4,
-            "The system could not confirm installed updates.",
-            "If updates can’t be verified, you may be missing important security patches without realizing it.",
-            "Open Windows Update and confirm the device is up to date. If this is a managed device, verify update reporting with IT.",
-        )
-    elif total_patches < 15:
-        score += 2
-        warnings.append("Unusually low patch count.")
-        # Keep as warning-level vulnerability signal
-        add_finding(
-            "MEDIUM",
-            "Unusually low patch count",
-            "Low HotFix count may indicate missing cumulative updates (or limited visibility).",
-            1,
-            "This device has fewer recorded updates than expected.",
-            "A low patch count can mean the system is missing updates, or that update inventory is incomplete.",
-            "Run Windows Update and verify patching. If inventory is managed by IT, confirm reporting is working.",
-        )
+        warnings.append("No entries returned by HotFix inventory; verify updates separately.")
 
     os_val = os_security_validation(system_info)
     if not os_val.get("baseline_ok"):
@@ -718,6 +728,7 @@ def vulnerability_check(system_info: dict, av_info: dict, patches_info: dict) ->
         "firewall": fw,
         "open_ports": ports,
         "services": services,
+        "device_protection": device_protection,
     }
 
 
@@ -958,7 +969,7 @@ def build_text_report() -> str:
         for name in av.get("products", []):
             report_lines.append(f"  - {name}")
     else:
-        report_lines.append(f"{_mark('FAIL')} Antivirus: NOT FOUND")
+        report_lines.append(f"{_mark('WARN')} Antivirus: UNKNOWN (inventory unavailable or no product reported)")
         if av.get("error"):
             report_lines.append(f"Details: {av.get('error')}")
     for d in av.get("details", []):

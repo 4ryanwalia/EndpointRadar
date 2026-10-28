@@ -68,11 +68,9 @@ def _build_component_cards(scan: dict[str, Any]) -> list[dict[str, Any]]:
     firewall_off = [name for name in ("Domain", "Private", "Public") if str((firewall_profiles.get(name) or {}).get("state") or "").upper() == "OFF"]
     risky_ports = scan.get("open_ports", {}).get("risky_open", []) or []
     highlighted_services = scan.get("services", {}).get("highlighted", []) or []
-    risky_apps = scan.get("risky_apps")
-    if not isinstance(risky_apps, list):
-        risky_apps = risk.filter_risky_apps(risk.analyze_software_risk(scan.get("installed_apps") or []))
     patches = scan.get("patches") or {}
     antivirus = scan.get("antivirus") or {}
+    device_protection = scan.get("device_protection") or {}
 
     def _card(name: str, details: str) -> dict[str, Any]:
         score = int(scores.get(name, 0))
@@ -92,7 +90,7 @@ def _build_component_cards(scan: dict[str, Any]) -> list[dict[str, Any]]:
         ),
         _card(
             "Patching",
-            f"Days since last patch: {patches.get('days_since_last_patch', 'Unknown')} | Warning: {patches.get('patch_warning') or 'None'}",
+            f"Days since last visible HotFix: {patches.get('days_since_last_patch', 'Unknown')} | Update compliance not verified",
         ),
         _card(
             "Antivirus",
@@ -102,7 +100,12 @@ def _build_component_cards(scan: dict[str, Any]) -> list[dict[str, Any]]:
             "Services",
             f"Highlighted services: {', '.join(str(item.get('name') or '') for item in highlighted_services[:6]) or 'None'}",
         ),
-        _card("Third-party Software", f"Risky applications: {len(risky_apps)}"),
+        _card("Third-party Software", "Inventory only; vulnerability status not verified"),
+        _card(
+            "Device Protection",
+            f"Secure Boot: {(device_protection.get('secure_boot') or {}).get('state', 'unknown')} | "
+            f"System drive protection: {(device_protection.get('system_drive_encryption') or {}).get('state', 'unknown')}",
+        ),
     ]
 
 
