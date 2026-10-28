@@ -12,14 +12,6 @@ from . import threats as threat_analysis
 app = Flask(__name__, template_folder="templates")
 
 
-@app.after_request
-def add_cors_headers(response: Any) -> Any:
-    response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Headers"] = "Content-Type"
-    response.headers["Access-Control-Allow-Methods"] = "GET, OPTIONS"
-    return response
-
-
 def _load_results() -> list[dict[str, Any]]:
     results = scanner.load_scan_results()
     risk_order = {"CRITICAL": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3, "UNKNOWN": 4}
@@ -88,7 +80,7 @@ def _build_component_cards(scan: dict[str, Any]) -> list[dict[str, Any]]:
             "name": name,
             "score": score,
             "contribution": round(float(contributions.get(name, 0.0)), 1),
-            "status": "Risk Detected" if score > 0 else "Secure",
+            "status": "Risk Detected" if score > 0 else "No risk scored",
             "details": details,
         }
 

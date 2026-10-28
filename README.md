@@ -494,6 +494,11 @@ endpointradar serve --port 5000
 A **read-only** Flask view over `scan_results.json`, useful for presenting results on a second
 screen or wiring into something else.
 
+The dashboard includes searchable, severity-filtered findings and CSV export of the current view.
+Open it through the local server at `http://127.0.0.1:5000/`, rather than opening the HTML file
+directly. The API does not grant cross-origin access; scan data can contain sensitive device details.
+Keep the server bound to localhost unless you have independently secured access to it.
+
 | Route | Returns |
 | --- | --- |
 | `GET /` | Rendered HTML dashboard |

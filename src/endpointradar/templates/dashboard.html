@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Endpoint Security Dashboard</title>
+  <title>EndpointRadar | Security Dashboard</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
@@ -143,6 +143,16 @@
       font-size: 0.92rem;
       margin-bottom: 18px;
     }
+
+    .findings-toolbar { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; margin-bottom: 16px; }
+    .findings-toolbar label { color: var(--muted); font-size: .84rem; display: grid; gap: 5px; flex: 1 1 190px; }
+    .findings-toolbar input, .findings-toolbar select { background: #101d2f; color: var(--text); border: 1px solid var(--line); border-radius: 9px; padding: 9px 12px; min-width: 0; }
+    .findings-toolbar input:focus, .findings-toolbar select:focus { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .finding-list { display: grid; gap: 10px; }
+    .finding-card { border: 1px solid var(--line); border-radius: 14px; padding: 16px; background: rgba(11,18,32,.6); }
+    .finding-card h3 { font-size: 1rem; margin: 0; }
+    .finding-card p { color: var(--muted); margin: 10px 0 0; }
+    .finding-card strong { color: var(--text); }
 
     .device-meta {
       color: var(--muted);
@@ -437,6 +447,18 @@
       </div>
     </section>
 
+    <section class="glass-card section-card mb-4" aria-labelledby="findings-title">
+      <h2 id="findings-title" class="panel-title">Findings &amp; recommendations</h2>
+      <p class="panel-subtitle">Search the saved scan and export the findings currently shown. Scan data stays on this machine.</p>
+      <div class="findings-toolbar">
+        <label>Search findings <input id="findingSearch" type="search" placeholder="Search title or recommendation"></label>
+        <label>Severity <select id="findingSeverity"><option value="ALL">All severities</option><option>CRITICAL</option><option>HIGH</option><option>MEDIUM</option><option>LOW</option><option>UNKNOWN</option></select></label>
+        <button id="exportFindings" class="btn btn-soc" type="button" disabled>Export CSV</button>
+      </div>
+      <p id="findingCount" class="footer-note" aria-live="polite"></p>
+      <div id="findingList" class="finding-list"></div>
+    </section>
+
     <section class="row g-3 mb-4">
       <div class="col-xl-6">
         <div class="glass-card section-card">
@@ -513,9 +535,10 @@
         threat: null,
       },
       liveRefreshPending: false,
+      findings: [],
     };
 
-    const API_BASE = window.location.protocol === "file:" ? "http://127.0.0.1:5000" : window.location.origin;
+    const API_BASE = window.location.origin;
 
     const levelClass = {
       HIGH: "pill-high",
@@ -587,8 +610,7 @@
     }
 
     function setRefreshMeta() {
-      const mode = window.location.protocol === "file:" ? ` via ${API_BASE}` : "";
-      document.getElementById("refreshMeta").textContent = `Presentation view refreshed at ${new Date().toLocaleTimeString()}${mode}`;
+      document.getElementById("refreshMeta").textContent = `Presentation view refreshed at ${new Date().toLocaleTimeString()}`;
     }
 
     function setLiveRefreshButtonState(busy) {
@@ -679,7 +701,7 @@
 
     function renderRiskChart(contributions) {
       const entries = Object.entries(contributions || {}).filter(([, value]) => Number(value || 0) > 0);
-      const labels = entries.length ? entries.map(([label]) => label) : ["Secure"];
+      const labels = entries.length ? entries.map(([label]) => label) : ["No risk points recorded"];
       const values = entries.length ? entries.map(([, value]) => Number(value || 0)) : [100];
       const colors = entries.length
         ? ["#ff6b6b", "#ff9f43", "#ffd166", "#4dd0e1", "#5eead4", "#95a4ff"].slice(0, labels.length)
@@ -740,17 +762,17 @@
           <div class="threat-card">
             <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
               <div>
-                <div class="detail-chip mb-2">${threat.category}</div>
-                <h3 class="h5 mb-1">${threat.threat_title}</h3>
+                <div class="detail-chip mb-2">${escapeHtml(threat.category)}</div>
+                <h3 class="h5 mb-1">${escapeHtml(threat.threat_title)}</h3>
               </div>
-              <span class="risk-pill ${levelClass[threat.risk_level] || "pill-unknown"}">${threat.risk_level}</span>
+              <span class="risk-pill ${levelClass[threat.risk_level] || "pill-unknown"}">${escapeHtml(threat.risk_level)}</span>
             </div>
             <div class="metric-row mb-3">
-              <span>NIST Function: ${threat.nist_function}</span>
-              <span>Likelihood ${threat.likelihood} x Impact ${threat.impact} = ${threat.score}</span>
+              <span>NIST Function: ${escapeHtml(threat.nist_function)}</span>
+              <span>Likelihood ${escapeHtml(threat.likelihood)} x Impact ${escapeHtml(threat.impact)} = ${escapeHtml(threat.score)}</span>
             </div>
-            <p class="mb-2">${threat.description || "No description provided."}</p>
-            <div class="footer-note"><strong>Recommendation:</strong> ${threat.recommendation || "No recommendation provided."}</div>
+            <p class="mb-2">${escapeHtml(threat.description || "No description provided.")}</p>
+            <div class="footer-note"><strong>Recommendation:</strong> ${escapeHtml(threat.recommendation || "No recommendation provided.")}</div>
           </div>
         </div>
       `).join("");
@@ -768,16 +790,16 @@
           <div class="component-card">
             <div class="d-flex justify-content-between align-items-start gap-3 mb-2">
               <div>
-                <div class="detail-chip mb-2">${component.status}</div>
-                <h3 class="h5 mb-0">${component.name}</h3>
+                <div class="detail-chip mb-2">${escapeHtml(component.status)}</div>
+                <h3 class="h5 mb-0">${escapeHtml(component.name)}</h3>
               </div>
-              <div class="component-score">${component.score}</div>
+              <div class="component-score">${escapeHtml(component.score)}</div>
             </div>
             <div class="metric-row mb-2">
               <span>Contribution</span>
-              <span>${component.contribution}%</span>
+              <span>${escapeHtml(component.contribution)}%</span>
             </div>
-            <div class="footer-note">${component.details}</div>
+            <div class="footer-note">${escapeHtml(component.details)}</div>
           </div>
         </div>
       `).join("");
@@ -802,7 +824,52 @@
       `).join("");
     }
 
+    function visibleFindings() {
+      const query = document.getElementById("findingSearch").value.trim().toLowerCase();
+      const severity = document.getElementById("findingSeverity").value;
+      return state.findings.filter((item) => {
+        if (!item || typeof item !== "object") return false;
+        const level = String(item.severity || "UNKNOWN").toUpperCase();
+        const searchable = [item.title, item.description, item.fix].map(value => String(value || "")).join(" ").toLowerCase();
+        return (severity === "ALL" || severity === level) && (!query || searchable.includes(query));
+      });
+    }
+
+    function renderFindings() {
+      const findings = visibleFindings();
+      document.getElementById("findingCount").textContent = `${findings.length} of ${state.findings.length} findings shown`;
+      document.getElementById("exportFindings").disabled = findings.length === 0;
+      document.getElementById("findingList").innerHTML = findings.length ? findings.map((item) => {
+        const level = String(item.severity || "UNKNOWN").toUpperCase();
+        const pill = Object.hasOwn(levelClass, level) ? levelClass[level] : "pill-unknown";
+        return `<article class="finding-card"><div class="d-flex justify-content-between align-items-start gap-3"><h3>${escapeHtml(item.title || "Untitled finding")}</h3><span class="risk-pill ${pill}">${escapeHtml(level)}</span></div><p>${escapeHtml(item.description || "No description provided.")}</p><p><strong>Recommended action:</strong> ${escapeHtml(item.fix || "No recommendation provided.")}</p></article>`;
+      }).join("") : `<div class="empty-state">No findings match this view. A lack of findings does not establish that an endpoint is secure.</div>`;
+    }
+
+    function exportFindings() {
+      // Prevent spreadsheet formula execution for values originating in scan data.
+      const cell = value => {
+        let text = String(value ?? "");
+        if (/^[\s\u0000-\u001f]*[=+@-]/.test(text)) text = "'" + text;
+        return `"${text.replaceAll('"', '""')}"`;
+      };
+      const rows = [["Severity", "Title", "Description", "Recommendation"], ...visibleFindings().map(item => [item.severity, item.title, item.description, item.fix])];
+      const csv = rows.map(row => row.map(cell).join(",")).join("\r\n");
+      const url = URL.createObjectURL(new Blob(["\ufeff", csv], {type: "text/csv;charset=utf-8"}));
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "endpointradar-findings.csv";
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    document.getElementById("findingSearch").addEventListener("input", renderFindings);
+    document.getElementById("findingSeverity").addEventListener("change", renderFindings);
+    document.getElementById("exportFindings").addEventListener("click", exportFindings);
+
     function renderEmptyDashboard() {
+      state.findings = [];
+      renderFindings();
       document.getElementById("riskLevelCard").textContent = "-";
       document.getElementById("riskScoreCard").textContent = "-";
       document.getElementById("statusCard").textContent = "-";
@@ -829,6 +896,8 @@
         return;
       }
       renderSummary(payload.summary, payload.risk_summary);
+      state.findings = Array.isArray(payload.scan?.vulnerabilities) ? payload.scan.vulnerabilities : [];
+      renderFindings();
       renderRiskChart(payload.component_contributions || {});
       renderThreatChart(payload.threat_category_breakdown || {});
       renderThreats(payload.threats || []);
@@ -904,9 +973,7 @@
           refreshDevices().catch((error) => showError(error.message || "Auto-refresh failed."));
         }, 10000);
       } catch (error) {
-        const message = window.location.protocol === "file:"
-          ? `Unable to reach the presentation server at ${API_BASE}. Start it with: python presentation_server.py`
-          : (error.message || "Unable to initialize the dashboard.");
+        const message = error.message || "Unable to initialize the dashboard. Start it with: endpointradar serve";
         showError(message);
         renderEmptyDashboard();
       }
