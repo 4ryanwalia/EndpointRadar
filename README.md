@@ -400,6 +400,11 @@ heuristics and should be rescanned before relying on their results.
 Unauthenticated (limited-visibility) records are scored **only** on port evidence. A credential-free
 result will never claim a machine has no antivirus — it reports that it could not tell.
 
+Authenticated scans report Microsoft Defender tamper protection separately as `true`, `false`, or
+`null` (unknown) under `antivirus.defender_tamper_protection`. Older scans may omit this field.
+It describes Defender only, does not establish the protection settings of other antivirus products,
+and does not affect the risk score. A missing property, unsupported cmdlet, or query failure is unknown.
+
 ## Threat analysis and NIST CSF 2.0
 
 `endpointradar threats` interprets an existing scan — it never re-runs checks or modifies the record.
@@ -431,6 +436,10 @@ software inventory alone do not create a patch or software-exploitation threat.
 Every mode emits the same JSON shape. A full anonymised example ships at
 [`examples/sample-scan.json`](examples/sample-scan.json).
 
+Operating-system version and build are inventory only. The scanner does not establish
+Windows support lifecycle status or update compliance; verify these separately for the
+device's edition and servicing channel. A missing version is not scored as a failed baseline.
+
 ```jsonc
 {
   "hostname": "WIN-DEMO-01",
@@ -451,7 +460,7 @@ Every mode emits the same JSON shape. A full anonymised example ships at
   ],
 
   "system_info":  { "hostname": "...", "ip_address": "...", "os_name": "...", "os_version": "..." },
-  "antivirus":    { "found": true, "status": "ENABLED", "realtime_protection": true, "products": [] },
+  "antivirus":    { "found": true, "status": "ENABLED", "realtime_protection": true, "defender_tamper_protection": true, "products": [] },
   "patches":      { "total_patches": 12, "days_since_last_patch": 9, "patch_warning": "" },
   "firewall":     { "profiles": { "Domain": {"state": "ON"}, "Private": {}, "Public": {} } },
   "open_ports":   { "listening_ports": [], "risky_open": [{ "port": 445, "severity": "HIGH" }] },
@@ -537,11 +546,18 @@ endpointradar remote 10.0.0.51 -u Administrator
 
 **What actually happens:** EndpointRadar creates `C:\temp\endpointradar_remote_scan` on the target,
 base64-streams the five stdlib-only modules into it, runs a small throwaway runner script, reads
-back the resulting JSON, and reports. NTLM is tried first, then Basic. Nothing is installed, no
+back the resulting JSON, and reports. Authentication uses NTLM. Nothing is installed, no
 service is registered, and no scheduled task is created.
 
-> Use HTTPS-configured WinRM on any network you do not fully control. Basic auth over plain HTTP
-> transmits credentials in a trivially reversible form.
+**Security limitation:** This is a predictable, shared staging directory; the staged Python code
+and sensitive scan JSON persist on the target after a scan. Concurrent scans of the same target
+can overwrite each other's files. Anyone able to modify the directory may be able to influence
+executed code or results. Use remote scans only when the target and directory are trusted and
+access-controlled, then securely remove the staging directory when no scan is using it.
+
+> The current client connects over WinRM HTTP on port 5985 and does not offer an HTTPS option.
+> NTLM is used; Basic authentication is not attempted. HTTP is not equivalent to TLS. Use this
+> mode only on a trusted network, and follow your organization's WinRM security policy.
 
 ## Requirements
 

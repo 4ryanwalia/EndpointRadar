@@ -11,6 +11,18 @@ spec.loader.exec_module(os_check)
 
 
 class PostureChecks(unittest.TestCase):
+    def test_os_version_never_claims_support_or_failure(self):
+        for info in (
+            {"os_name": "Windows", "os_release": "10", "os_version": "10.0.19045"},
+            {"os_name": "Windows", "os_release": "10", "os_version": "10.0.26100"},
+            {"os_name": "Windows", "os_release": "11", "os_version": ""},
+            {"os_name": "Linux", "os_release": "", "os_version": ""},
+        ):
+            result = os_check.os_security_validation(info)
+            self.assertIsNone(result["baseline_ok"])
+            self.assertEqual(result["baseline"], "Not evaluated")
+            self.assertIn("not evaluated", result["findings"][0])
+
     def test_scan_preserves_check_ids_and_explicit_coverage(self):
         import sys
         from contextlib import ExitStack
@@ -75,13 +87,36 @@ class PostureChecks(unittest.TestCase):
         self.assertEqual(results["system_drive_encryption"]["state"], "enabled")
 
     def test_passive_defender_does_not_override_third_party_antivirus(self):
-        responses = [(0, "AntivirusEnabled=False\nRealTimeProtectionEnabled=False", ""),
+        responses = [(0, "AntivirusEnabled=False\nRealTimeProtectionEnabled=False\nIsTamperProtected=False", ""),
                      (0, "Third Party AV  397568\nWindows Defender  397568", "")]
         with patch.object(os_check, "_run_command", side_effect=responses):
             result = os_check.check_antivirus()
         self.assertTrue(result["found"])
         self.assertIsNone(result["realtime_protection"])
         self.assertNotEqual(result["status"], "DISABLED")
+        self.assertIs(result["defender_tamper_protection"], False)
+
+    def test_defender_tamper_protection_states_and_unavailable(self):
+        for output, code, expected in [
+            ("IsTamperProtected=True", 0, True),
+            ("IsTamperProtected=False", 0, False),
+            ("IsTamperProtected=", 0, None),
+            ("IsTamperProtected=not-a-boolean", 0, None),
+            ("IsTamperProtected=True", 1, None),
+            ("", 0, None),
+        ]:
+            with self.subTest(output=output, code=code):
+                responses = [(code, output, "access denied" if code else ""), (0, "Windows Defender  397568", "")]
+                with patch.object(os_check, "_run_command", side_effect=responses):
+                    result = os_check.check_antivirus()
+                self.assertIs(result["defender_tamper_protection"], expected)
+
+    def test_defender_tamper_survives_unavailable_product_inventory(self):
+        responses = [(0, "IsTamperProtected=True", ""), (1, "", "access denied"), (1, "", "unavailable")]
+        with patch.object(os_check, "_run_command", side_effect=responses):
+            result = os_check.check_antivirus()
+        self.assertEqual(result["status"], "UNKNOWN")
+        self.assertIs(result["defender_tamper_protection"], True)
 
     def test_antivirus_query_failure_is_unknown(self):
         with patch.object(os_check, "_run_command", return_value=(1, "", "access denied")):

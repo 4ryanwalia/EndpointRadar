@@ -363,6 +363,12 @@ def cmd_sweep(args: argparse.Namespace, style: Style) -> int:
 def cmd_remote(args: argparse.Namespace, style: Style) -> int:
     from . import scanner
 
+    print(
+        "Warning: remote scanning uses a predictable shared staging directory on the target. "
+        "Staged code and sensitive results remain there; concurrent scans may interfere. "
+        "Use only on trusted, access-controlled targets and remove the directory afterward.",
+        file=sys.stderr,
+    )
     password = os.environ.get(args.password_env or "")
     if not password:
         if not sys.stdin.isatty():

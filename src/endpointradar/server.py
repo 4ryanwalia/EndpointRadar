@@ -94,7 +94,8 @@ def _build_component_cards(scan: dict[str, Any]) -> list[dict[str, Any]]:
         ),
         _card(
             "Antivirus",
-            f"Status: {antivirus.get('status', 'UNKNOWN')} | Real-time: {antivirus.get('realtime_protection')}",
+            f"Status: {antivirus.get('status', 'UNKNOWN')} | Real-time: {antivirus.get('realtime_protection')} | "
+            f"Defender tamper protection: {'ENABLED' if antivirus.get('defender_tamper_protection') is True else 'DISABLED' if antivirus.get('defender_tamper_protection') is False else 'UNKNOWN'}",
         ),
         _card(
             "Services",

@@ -760,8 +760,8 @@ def _build_winrm_username_candidates(username: str) -> list[str]:
 
 
 def _build_winrm_transport_attempts() -> list[str]:
-    # Prefer NTLM to match typical PowerShell remoting behavior over HTTP.
-    return ["ntlm", "basic"]
+    # Basic over the hard-coded HTTP endpoint would disclose credentials.
+    return ["ntlm"]
 
 
 def _emit_remote_progress(

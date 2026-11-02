@@ -2308,6 +2308,7 @@ class EndpointDashboard(tk.Tk):
             secure_status,
             f"Status: {av.get('status', 'UNKNOWN')}",
             f"Real-time protection: {'ENABLED' if av.get('realtime_protection') is True else ('DISABLED' if av.get('realtime_protection') is False else 'UNKNOWN')}",
+            f"Microsoft Defender tamper protection: {'ENABLED' if av.get('defender_tamper_protection') is True else ('DISABLED' if av.get('defender_tamper_protection') is False else 'UNKNOWN')}",
             f"Products: {', '.join(av.get('products') or []) or 'None reported'}",
             "",
             "Risk explanation:",

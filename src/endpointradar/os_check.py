@@ -175,6 +175,7 @@ def check_antivirus() -> dict:
         # Real-world-ish validation signals (best effort):
         "status": "UNKNOWN",  # ENABLED / DISABLED / UNKNOWN
         "realtime_protection": None,  # True/False/None
+        "defender_tamper_protection": None,  # Defender-specific True/False/None
         "details": [],
     }
 
@@ -186,7 +187,8 @@ def check_antivirus() -> dict:
         "if ($null -ne $s) { "
         "  $avEnabled = $s.AntivirusEnabled; "
         "  $rtp = $s.RealTimeProtectionEnabled; "
-        "  Write-Output (\"AntivirusEnabled={0}`nRealTimeProtectionEnabled={1}\" -f $avEnabled,$rtp) "
+        "  $tamper = $s.IsTamperProtected; "
+        "  Write-Output (\"AntivirusEnabled={0}`nRealTimeProtectionEnabled={1}`nIsTamperProtected={2}\" -f $avEnabled,$rtp,$tamper) "
         "}"
     )
     code_mp, out_mp, _err_mp = _run_command(
@@ -204,6 +206,9 @@ def check_antivirus() -> dict:
             if line.lower().startswith("realtimeprotectionenabled="):
                 value = line.split("=", 1)[1].strip().lower()
                 defender_rtp = {"true": True, "false": False}.get(value)
+            if line.lower().startswith("istamperprotected="):
+                value = line.split("=", 1)[1].strip().lower()
+                result["defender_tamper_protection"] = {"true": True, "false": False}.get(value)
 
     # Preferred: PowerShell CIM query (WMI SecurityCenter2 namespace).
     ps_cmd = (
@@ -408,52 +413,18 @@ def check_patches() -> dict:
 
 
 def os_security_validation(system_info: dict) -> dict:
+    """Retain version evidence without inferring security or lifecycle support.
+
+    Support depends on edition, servicing channel, update level, and current
+    lifecycle information, none of which this local check establishes.
     """
-    Compares the OS build against a simple expected secure baseline.
-    This is a heuristic (not authoritative EOL validation).
-    """
-    os_name = (system_info.get("os_name") or "").lower()
-    os_release = str(system_info.get("os_release") or "")
     os_version = str(system_info.get("os_version") or "")
-
-    findings: list[str] = []
-    baseline_ok = True
-    baseline = "Unknown"
-
-    if "windows" not in os_name:
-        return {
-            "baseline_ok": False,
-            "baseline": "Windows-only baseline",
-            "build": None,
-            "findings": ["Non-Windows OS detected; Windows baseline checks not applicable."],
-        }
-
-    build = _safe_int(os_version.split(".")[-1]) if os_version else None
-    rel = _safe_int(re.findall(r"\d+", os_release)[0]) if re.findall(r"\d+", os_release) else None
-
-    # Conservative baselines to avoid false "outdated" on modern systems.
-    # Windows 10: baseline build ~19045, Windows 11: baseline build ~22621.
-    if rel == 10:
-        baseline = "Windows 10 baseline build >= 19045"
-        if build is None or build < 19045:
-            baseline_ok = False
-            findings.append("OS build is below the expected Windows 10 secure baseline.")
-    elif rel == 11:
-        baseline = "Windows 11 baseline build >= 22621"
-        if build is None:
-            baseline_ok = False
-            findings.append("Could not determine Windows build number.")
-        elif build < 22621:
-            baseline_ok = False
-            findings.append("OS build is below the expected Windows 11 secure baseline.")
-    elif rel is None:
-        baseline_ok = False
-        findings.append("Unknown Windows release; unable to validate baseline.")
-    else:
-        baseline_ok = False
-        findings.append("Unsupported/unknown Windows release detected.")
-
-    return {"baseline_ok": baseline_ok, "baseline": baseline, "build": build, "findings": findings}
+    return {
+        "baseline_ok": None,
+        "baseline": "Not evaluated",
+        "build": _safe_int(os_version.split(".")[-1]) if os_version else None,
+        "findings": ["OS support and update compliance were not evaluated; verify using an authoritative source."],
+    }
 
 
 def check_device_protection() -> dict:
@@ -712,19 +683,7 @@ def vulnerability_check(system_info: dict, av_info: dict, patches_info: dict) ->
         warnings.append("No entries returned by HotFix inventory; verify updates separately.")
 
     os_val = os_security_validation(system_info)
-    if not os_val.get("baseline_ok"):
-        findings = os_val.get("findings") or []
-        for f in findings:
-            warnings.append(f)
-        add_finding(
-            "HIGH",
-            "OS baseline not met",
-            "Detected OS build is below expected secure baseline or unsupported/unknown version.",
-            5,
-            "Your Windows version/build may be outdated or not supported.",
-            "Older or unsupported versions may not receive critical security updates and are easier to compromise.",
-            "Update Windows to a supported version/build and install the latest cumulative updates.",
-        )
+    warnings.extend(os_val.get("findings") or [])
 
     # Admin context (INFO; no points)
     admin = check_admin_privileges()
@@ -999,6 +958,9 @@ def build_text_report() -> str:
     else:
         report_lines.append("Real-Time Prot. : UNKNOWN")
 
+    tamper = av.get("defender_tamper_protection")
+    report_lines.append(f"Defender tamper protection: {'ENABLED' if tamper is True else 'DISABLED' if tamper is False else 'UNKNOWN'}")
+
     if av.get("found"):
         report_lines.append("Detected AV Products:")
         for name in av.get("products", []):
@@ -1041,7 +1003,7 @@ def build_text_report() -> str:
     report_lines.append(f"Baseline        : {os_val.get('baseline', 'N/A')}")
     if os_val.get("build") is not None:
         report_lines.append(f"Detected Build  : {os_val.get('build')}")
-    report_lines.append(f"Baseline Status : {'PASS' if os_val.get('baseline_ok') else 'FAIL'}")
+    report_lines.append("Baseline Status : NOT EVALUATED")
     for f in os_val.get("findings", []):
         report_lines.append(f"{_mark('WARN')} {f}")
 

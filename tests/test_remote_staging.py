@@ -91,3 +91,22 @@ def test_runner_script_is_valid_python_and_imports_the_package() -> None:
 
 def test_init_is_staged_so_the_package_is_importable() -> None:
     assert "__init__.py" in scanner.REMOTE_SCAN_FILES
+
+
+def test_remote_http_never_attempts_basic_authentication() -> None:
+    assert scanner._build_winrm_transport_attempts() == ["ntlm"]
+
+
+def test_remote_cli_warns_before_authentication_even_in_quiet_mode(monkeypatch, capsys) -> None:
+    from types import SimpleNamespace
+
+    from endpointradar.cli import Style, cmd_remote
+
+    monkeypatch.delenv("ENDPOINTRADAR_TEST_PASSWORD", raising=False)
+    monkeypatch.setattr(sys.stdin, "isatty", lambda: False)
+    args = SimpleNamespace(password_env="ENDPOINTRADAR_TEST_PASSWORD", quiet=True)
+    with pytest.raises(SystemExit):
+        cmd_remote(args, Style(False))
+    warning = capsys.readouterr().err
+    assert "predictable shared staging directory" in warning
+    assert "sensitive results remain" in warning
