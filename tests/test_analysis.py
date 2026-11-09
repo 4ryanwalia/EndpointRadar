@@ -139,6 +139,19 @@ def test_threat_generation_is_deterministic(scan: dict) -> None:
     assert threats.generate_threats(scan) == threats.generate_threats(scan)
 
 
+def test_local_listeners_are_not_described_as_network_reachable() -> None:
+    base = {"open_ports": {"risky_open": [{"port": 445}, {"port": 3389}]}}
+    local = threats.generate_threats(base)
+    local_ports = [t for t in local if t["category"] == "Open Ports"]
+    assert len(local_ports) == 2
+    assert all("network reachability were not verified" in t["description"] for t in local_ports)
+    assert all(t["likelihood"] == 2 for t in local_ports)
+    remote = threats.generate_threats({**base, "limited_visibility": True})
+    remote_ports = [t for t in remote if t["category"] == "Open Ports"]
+    assert len(remote_ports) == 2
+    assert all("reachable from the scanning host" in t["description"] for t in remote_ports)
+
+
 def test_empty_scan_does_not_crash_the_analysers() -> None:
     assert isinstance(threats.generate_threats({}), list)
     assert isinstance(risk.compute_component_scores({}), dict)

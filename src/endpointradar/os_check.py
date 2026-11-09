@@ -570,23 +570,23 @@ def vulnerability_check(system_info: dict, av_info: dict, patches_info: dict) ->
         for item in ports.get("risky_open", []) or []:
             p = item.get("port")
             sev = item.get("severity") or "MEDIUM"
-            reason = item.get("reason") or "Risky port open."
+            reason = item.get("reason") or "A monitored port is listening locally."
             plain = ""
             fix = ""
             if p == 445:
-                plain = "Port 445 is used for Windows file sharing (SMB). If it’s open, attackers can sometimes use it to spread malware across the network."
+                plain = "Port 445 is commonly used for Windows file sharing (SMB). This check only establishes that a local socket is listening."
                 fix = "If file sharing is not needed, disable SMB/file sharing. If needed, restrict it to trusted networks, block it on Public networks, and keep Windows fully updated."
             elif p == 3389:
-                plain = "Port 3389 is used for Remote Desktop (RDP). If it’s open, attackers may try to guess passwords or exploit remote access."
+                plain = "Port 3389 is commonly used for Remote Desktop (RDP). This check only establishes that a local socket is listening."
                 fix = "If you don’t need Remote Desktop, turn it off. If you do, restrict access (VPN, allow-list), enable MFA/NLA, and use strong passwords."
             elif p == 21:
-                plain = "Port 21 is used for FTP. FTP often sends usernames/passwords without encryption."
+                plain = "Port 21 is commonly used for FTP, which often sends credentials without encryption. The service identity and reachability were not verified."
                 fix = "Disable FTP if unused. Prefer SFTP/FTPS. If required, restrict access and use strong credentials."
             elif p == 22:
-                plain = "Port 22 is used for SSH (remote administration). Exposed SSH increases your remote attack surface."
+                plain = "Port 22 is commonly used for SSH. This check only establishes that a local socket is listening."
                 fix = "Disable SSH if unused. If required, restrict access, use key-based login, and block password login where possible."
             else:
-                plain = "A network service is listening on a port that can increase exposure."
+                plain = "A local socket is listening; the service identity and network reachability were not verified."
                 fix = "Close/disable services you don’t need and restrict access using firewall rules."
             add_finding(
                 "HIGH" if str(sev).upper() == "HIGH" else "MEDIUM",
@@ -594,7 +594,7 @@ def vulnerability_check(system_info: dict, av_info: dict, patches_info: dict) ->
                 reason,
                 3,
                 plain,
-                "Open ports are like open doors on the network. Attackers scan for them to find targets.",
+                "A listening socket may be reachable depending on its bind address, firewall rules and network path. This check does not test reachability.",
                 fix,
             )
 
@@ -606,7 +606,7 @@ def vulnerability_check(system_info: dict, av_info: dict, patches_info: dict) ->
             name = svc.get("name")
             sev = svc.get("severity") or "MEDIUM"
             reason = svc.get("reason") or ""
-            # Services are context signals; score lightly unless combined with exposed port.
+            # A running service is a contextual signal, not evidence of network reachability.
             points = 2 if str(sev).upper() == "HIGH" else 1
             meaning = ""
             fix = ""
@@ -798,10 +798,10 @@ def detect_open_ports() -> dict:
     Fallback: netstat -ano parsing if psutil is unavailable.
     """
     risky_ports = {
-        3389: "RDP exposed can enable remote access/brute-force attempts.",
-        445: "SMB exposed can increase risk of lateral movement and wormable exploits.",
-        21: "FTP is often plaintext; exposed FTP can leak credentials/data.",
-        22: "SSH exposed increases remote attack surface (verify hardening).",
+        3389: "A local listener uses port 3389, commonly associated with RDP; network reachability was not tested.",
+        445: "A local listener uses port 445, commonly associated with SMB; network reachability was not tested.",
+        21: "A local listener uses port 21, commonly associated with FTP; network reachability was not tested.",
+        22: "A local listener uses port 22, commonly associated with SSH; network reachability was not tested.",
     }
 
     result: dict = {
@@ -1034,7 +1034,7 @@ def build_text_report() -> str:
             sev = "OK" if str(st).upper() == "ON" else ("FAIL" if str(st).upper() == "OFF" else "WARN")
             report_lines.append(f"  {prof:<7} : {st} {_mark(sev)}")
 
-    report_lines.append(_section("7) OPEN PORTS / EXPOSURE (LISTENING)"))
+    report_lines.append(_section("7) LOCAL LISTENING PORTS"))
     ports = assessment.get("open_ports") or {}
     report_lines.append(f"Detection Method: {ports.get('method', 'N/A')}")
     if ports.get("error"):

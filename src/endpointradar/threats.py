@@ -172,10 +172,11 @@ def generate_threats(scan: dict[str, Any], max_threats: int = 10) -> list[dict[s
         _add_threat(
             threats,
             category="Open Ports",
-            title="SMB exploitation risk (Port 445)",
-            likelihood=4,
+            title="SMB exposure review (Port 445)" if limited_visibility else "Local listener review (Port 445)",
+            likelihood=4 if limited_visibility else 2,
             impact=4,
-            description="SMB (file sharing) port is exposed, increasing risk of wormable/malware-based attacks.",
+            description=("Port 445 was reachable from the scanning host; confirm the service and restrict access as appropriate."
+                         if limited_visibility else "Port 445 was listening locally; the service identity and network reachability were not verified."),
             recommendation="Disable SMB if not required, or restrict access using firewall rules (especially on Public networks).",
         )
 
@@ -183,10 +184,11 @@ def generate_threats(scan: dict[str, Any], max_threats: int = 10) -> list[dict[s
         _add_threat(
             threats,
             category="Open Ports",
-            title="Remote access brute-force risk (Port 3389)",
-            likelihood=4,
+            title="Remote access review (Port 3389)" if limited_visibility else "Local listener review (Port 3389)",
+            likelihood=4 if limited_visibility else 2,
             impact=3,
-            description="RDP port is exposed; attackers can attempt credential guessing or exploit weaknesses.",
+            description=("Port 3389 was reachable from the scanning host; confirm the service and restrict access as appropriate."
+                         if limited_visibility else "Port 3389 was listening locally; the service identity and network reachability were not verified."),
             recommendation="Disable RDP if unused. If required, restrict via VPN/allow-list and enforce strong authentication.",
         )
 
@@ -198,7 +200,7 @@ def generate_threats(scan: dict[str, Any], max_threats: int = 10) -> list[dict[s
             likelihood=4,
             impact=3,
             description="Several monitored services are reachable without authentication, increasing the chance of opportunistic discovery and misuse.",
-            recommendation="Reduce the number of externally reachable services and restrict any required services to trusted network paths.",
+            recommendation="Reduce reachable services and restrict any required services to trusted network paths.",
         )
 
     # --- Services threats (1-2) ---
@@ -207,10 +209,10 @@ def generate_threats(scan: dict[str, Any], max_threats: int = 10) -> list[dict[s
         _add_threat(
             threats,
             category="Services",
-            title="SMB server service exposure",
+            title="SMB server service review",
             likelihood=3,
             impact=4,
-            description="SMB server service is running, increasing exposure to file-sharing attacks if vulnerable.",
+            description="The SMB server service is running; this check does not establish whether it is reachable over the network.",
             recommendation="Disable file sharing if not required, otherwise harden SMB and restrict network access via firewall.",
         )
 
@@ -218,10 +220,10 @@ def generate_threats(scan: dict[str, Any], max_threats: int = 10) -> list[dict[s
         _add_threat(
             threats,
             category="Services",
-            title="Remote Desktop service exposure",
+            title="Remote Desktop service review",
             likelihood=3,
             impact=4,
-            description="Remote Desktop Services is running, increasing the risk from remote access attacks.",
+            description="Remote Desktop Services is running; this check does not establish whether it is reachable over the network.",
             recommendation="Disable Remote Desktop if not required. If required, restrict access and enable NLA/MFA.",
         )
 
