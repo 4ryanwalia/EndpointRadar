@@ -115,6 +115,11 @@ def test_device_protection_scores_only_known_disabled_states() -> None:
     assert risk.compute_component_scores({})["Device Protection"] == 0
 
 
+def test_secure_boot_certificate_servicing_does_not_change_score() -> None:
+    for state in ("updated", "not_started", "in_progress", "unknown"):
+        assert risk.compute_component_scores({"secure_boot_servicing": {"state": state}})["Device Protection"] == 0
+
+
 # --------------------------------------------------------------------------
 # Threat analysis
 # --------------------------------------------------------------------------

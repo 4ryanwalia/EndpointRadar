@@ -422,7 +422,7 @@ def _calculate_unauthenticated_risk(open_ports: list[dict[str, Any]]) -> tuple[i
     open_count = len(open_ports)
     if open_count >= 3:
         score += 3
-        reasons.append("Multiple externally reachable services increase the exposed attack surface.")
+        reasons.append("Multiple services are reachable from this scanner, increasing the observed attack surface.")
     elif open_count >= 2:
         score += 1
         reasons.append("More than one management or application port is reachable without authentication.")
@@ -1492,6 +1492,7 @@ def run_single_scan() -> dict[str, Any]:
         "open_ports": assessment.get("open_ports") or {},
         "services": assessment.get("services") or {},
         "device_protection": assessment.get("device_protection") or {},
+        "secure_boot_servicing": assessment.get("secure_boot_servicing") or {"state": "unknown"},
         "posture_checks": assessment.get("posture_checks") or [],
         "third_party_software": software_info,
         "installed_apps": installed_inventory,

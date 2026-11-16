@@ -934,6 +934,14 @@ class EndpointDashboard(tk.Tk):
         if self.selected_device and not self._scan_supported_for_device(self.selected_device):
             self._update_connection_status_ui()
             return
+        messagebox.showwarning(
+            "Remote scan staging security",
+            "Remote scans use a predictable shared folder on the target. Staged code and sensitive "
+            "scan results remain there, and simultaneous scans may interfere. Someone with write "
+            "access to that folder could influence the scan. Use only on trusted, access-controlled "
+            "targets and remove the staging folder when no scan is using it. See the README for details.",
+            parent=self,
+        )
         self.remote_scan_in_progress = True
         self._update_remote_scan_progress_ui(
             f"Connecting to {ip_address} and preparing the remote scan...",
@@ -2383,6 +2391,12 @@ class EndpointDashboard(tk.Tk):
                 "Patch inventory is not visible without authentication."
             )
         patches = scan.get("patches") or {}
+        servicing = scan.get("secure_boot_servicing") or {}
+        servicing_state = {
+            "updated": "Updated",
+            "not_started": "Not started",
+            "in_progress": "In progress",
+        }.get(str(servicing.get("state") or "unknown").lower(), "Unknown")
         dt = patches.get("most_recent_patch_date")
         date_str = dt if isinstance(dt, str) else (dt.strftime("%Y-%m-%d") if dt else "Unknown")
         lines = [
@@ -2390,6 +2404,9 @@ class EndpointDashboard(tk.Tk):
             f"Days since visible HotFix: {patches.get('days_since_last_patch', 'Unknown')}",
             f"Visible HotFix entries: {patches.get('total_patches', 0)}",
             f"Warning: {patches.get('patch_warning') or 'None'}",
+            "",
+            f"Secure Boot 2023 certificate servicing: {servicing_state} (registry-reported)",
+            "This is separate from whether Secure Boot is enabled.",
             "",
             "HotFix inventory is incomplete; verify update compliance separately.",
         ]

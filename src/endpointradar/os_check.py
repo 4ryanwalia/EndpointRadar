@@ -427,6 +427,26 @@ def os_security_validation(system_info: dict) -> dict:
     }
 
 
+def _read_secure_boot_servicing_status() -> str:
+    """Read the Windows servicing status without modifying the registry."""
+    import winreg
+
+    path = r"SYSTEM\CurrentControlSet\Control\SecureBoot\Servicing"
+    with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, path, 0, winreg.KEY_READ) as key:
+        value, kind = winreg.QueryValueEx(key, "UEFICA2023Status")
+    return value if kind == winreg.REG_SZ and isinstance(value, str) else ""
+
+
+def check_secure_boot_servicing() -> dict:
+    """Report Microsoft's documented servicing states; unavailable evidence is unknown."""
+    try:
+        value = _read_secure_boot_servicing_status().strip().lower()
+    except (ImportError, OSError, ValueError):
+        value = ""
+    state = {"updated": "updated", "notstarted": "not_started", "inprogress": "in_progress"}.get(value, "unknown")
+    return {"state": state}
+
+
 def check_device_protection() -> dict:
     """Read Secure Boot and OS-volume BitLocker protection; unavailable is not off.
 
@@ -525,6 +545,7 @@ def vulnerability_check(system_info: dict, av_info: dict, patches_info: dict) ->
     ports = detect_open_ports()
     services = check_running_services()
     device_protection = check_device_protection()
+    secure_boot_servicing = check_secure_boot_servicing()
 
     if device_protection["secure_boot"]["state"] == "disabled":
         add_finding(
@@ -722,6 +743,7 @@ def vulnerability_check(system_info: dict, av_info: dict, patches_info: dict) ->
         "open_ports": ports,
         "services": services,
         "device_protection": device_protection,
+        "secure_boot_servicing": secure_boot_servicing,
         "posture_checks": posture_check_evidence(fw, av_info, device_protection),
     }
 

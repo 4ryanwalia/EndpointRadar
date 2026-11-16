@@ -405,6 +405,14 @@ Authenticated scans report Microsoft Defender tamper protection separately as `t
 It describes Defender only, does not establish the protection settings of other antivirus products,
 and does not affect the risk score. A missing property, unsupported cmdlet, or query failure is unknown.
 
+Authenticated scans also read the Windows `UEFICA2023Status` registry value as
+`secure_boot_servicing.state`: `updated`, `not_started`, `in_progress`, or `unknown`. This is
+reported separately from whether Secure Boot is enabled, and does not change the risk score.
+Missing, unavailable, or unrecognized registry values are unknown; older scans may omit the field.
+The result reports the Windows servicing status and does not establish complete firmware or device
+security. No registry setting or certificate is changed by this check. See
+[Microsoft's status definitions](https://support.microsoft.com/en-us/servicing/os/secure-boot/2025/09/registry-key-updates-for-secure-boot-windows-devices-with-it-managed-updates).
+
 ## Threat analysis and NIST CSF 2.0
 
 `endpointradar threats` interprets an existing scan — it never re-runs checks or modifies the record.

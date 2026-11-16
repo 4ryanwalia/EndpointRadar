@@ -11,6 +11,28 @@ spec.loader.exec_module(os_check)
 
 
 class PostureChecks(unittest.TestCase):
+    def test_secure_boot_servicing_states_are_informational(self):
+        for raw, expected in [("Updated", "updated"), ("NotStarted", "not_started"),
+                              ("InProgress", "in_progress"), ("", "unknown"), ("other", "unknown")]:
+            with self.subTest(raw=raw), patch.object(os_check, "_read_secure_boot_servicing_status", return_value=raw):
+                self.assertEqual(os_check.check_secure_boot_servicing(), {"state": expected})
+        for error in (FileNotFoundError(), PermissionError(), ImportError()):
+            with self.subTest(error=type(error).__name__), patch.object(os_check, "_read_secure_boot_servicing_status", side_effect=error):
+                self.assertEqual(os_check.check_secure_boot_servicing(), {"state": "unknown"})
+
+    def test_secure_boot_servicing_reads_only_string_registry_value(self):
+        import sys
+        from unittest.mock import MagicMock
+        winreg = MagicMock()
+        winreg.REG_SZ = 1
+        winreg.QueryValueEx.return_value = ("Updated", 1)
+        with patch.dict(sys.modules, {"winreg": winreg}):
+            self.assertEqual(os_check._read_secure_boot_servicing_status(), "Updated")
+            winreg.OpenKey.assert_called_once_with(winreg.HKEY_LOCAL_MACHINE,
+                r"SYSTEM\CurrentControlSet\Control\SecureBoot\Servicing", 0, winreg.KEY_READ)
+            winreg.QueryValueEx.return_value = (123, 4)
+            self.assertEqual(os_check.check_secure_boot_servicing(), {"state": "unknown"})
+
     def test_os_version_never_claims_support_or_failure(self):
         for info in (
             {"os_name": "Windows", "os_release": "10", "os_version": "10.0.19045"},
@@ -31,6 +53,7 @@ class PostureChecks(unittest.TestCase):
         assessment = {
             "vulnerabilities": [{"title": "Windows Firewall OFF", "severity": "HIGH"},
                                 {"title": "Risky port listening: 445", "severity": "HIGH"}],
+            "secure_boot_servicing": {"state": "in_progress"},
             "posture_checks": [{"id": "windows.firewall.profiles.v1", "status": "fail", "evidence": "Public=OFF"}],
         }
         mocks = [
@@ -49,6 +72,7 @@ class PostureChecks(unittest.TestCase):
                 stack.enter_context(item)
             scan = scanner.run_single_scan()
         self.assertEqual(scan["posture_checks"], assessment["posture_checks"])
+        self.assertEqual(scan["secure_boot_servicing"], {"state": "in_progress"})
         self.assertEqual(scan["vulnerabilities"][0]["check_id"], "windows.firewall.profiles.v1")
         self.assertNotIn("check_id", scan["vulnerabilities"][1])
 

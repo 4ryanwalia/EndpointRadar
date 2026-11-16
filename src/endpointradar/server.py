@@ -105,6 +105,7 @@ def _build_component_cards(scan: dict[str, Any]) -> list[dict[str, Any]]:
         _card(
             "Device Protection",
             f"Secure Boot: {(device_protection.get('secure_boot') or {}).get('state', 'unknown')} | "
+            f"2023 certificate servicing: {(scan.get('secure_boot_servicing') or {}).get('state', 'unknown')} | "
             f"System drive protection: {(device_protection.get('system_drive_encryption') or {}).get('state', 'unknown')}",
         ),
     ]
